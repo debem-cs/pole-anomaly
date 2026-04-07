@@ -1,10 +1,4 @@
 import numpy as np
-import pandas as pd
-import plotly.graph_objects as go
-import os
-
-def load_template(filepath):
-    return pd.read_csv(filepath)
 
 def generate_anomaly(template_df, amplitude, period, variance, sample_rate=1.0):
     """
@@ -16,8 +10,8 @@ def generate_anomaly(template_df, amplitude, period, variance, sample_rate=1.0):
     sample_rate: distance between discrete points (default 1 step)
     """
     n_points = len(template_df)
-    t_jitter = np.zeros(n_points)
-    v_jitter = np.zeros(n_points)
+    t_deformation = np.zeros(n_points)
+    v_deformation = np.zeros(n_points)
     
     for i in range(n_points):
         row = template_df.iloc[i]
@@ -39,12 +33,12 @@ def generate_anomaly(template_df, amplitude, period, variance, sample_rate=1.0):
             raw_v = -np.abs(raw_v)
             
         # Apply the explicit multipliers from the CSV template
-        t_jitter[i] = raw_t * row['t_plus'] if raw_t > 0 else raw_t * row['t_minus']
-        v_jitter[i] = raw_v * row['v_plus'] if raw_v > 0 else raw_v * row['v_minus']
+        t_deformation[i] = raw_t * row['t_plus'] if raw_t > 0 else raw_t * row['t_minus']
+        v_deformation[i] = raw_v * row['v_plus'] if raw_v > 0 else raw_v * row['v_minus']
 
-    # Apply jitter to the normalized space
-    t_new = template_df['time'].values + t_jitter
-    v_new = template_df['value'].values + v_jitter
+    # Apply deformation to the normalized space
+    t_new = template_df['time'].values + t_deformation
+    v_new = template_df['value'].values + v_deformation
     
     # Failsafe: Ensure strict monotonicity in time so points never cross backwards
     for i in range(1, len(t_new)):
@@ -88,31 +82,3 @@ def generate_anomaly(template_df, amplitude, period, variance, sample_rate=1.0):
                 break
     
     return t_discrete, v_discrete
-
-if __name__ == "__main__":
-    # Test execution
-    script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
-    template_path = os.path.join(script_dir, '..', 'anomalies', 'exp_square.csv')
-    
-    if os.path.exists(template_path):
-        df = load_template(template_path)
-        
-        # Test 10 generations to see the randomness
-        fig = go.Figure()
-        
-        for i in range(5):
-            t, v = generate_anomaly(df, amplitude=50, period=200, variance=0.05)
-            fig.add_trace(go.Scatter(x=t, y=v, mode='lines', name=f'Anomalia Aleatória {i+1}'))
-            
-        fig.update_layout(
-            title="Teste da Engine de Geração (Amplitude=50, Período=200, Jitter)", 
-            template="plotly_dark",
-            xaxis_title="Tempo Discreto (Steps)",
-            yaxis_title="Dose Gama"
-        )
-        
-        out = os.path.join(script_dir, '..', 'logs', 'generated_test.html')
-        fig.write_html(out)
-        print(f"Teste salvo com sucesso em: {out}")
-    else:
-        print(f"Template não encontrado: {template_path}")
