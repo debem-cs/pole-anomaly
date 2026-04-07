@@ -1,0 +1,44 @@
+# Python project .gitignore
+
+## 1. Virtual Environment ##
+# Ignore the virtual environment folder
+/venv/
+
+## 2. Python Bytecode & Compilation ##
+# Ignore compiled Python files and cache folders
+__pycache__/
+*.pyc
+*.pyd
+*.so
+
+## 3. Distribution & Packaging ##
+# Ignore directories and files created by setuptools (setup.py)
+# 'dist' holds distribution packages (wheels/tarballs)
+# 'build' is used during package building
+# '*.egg-info' contains package metadata
+/dist/
+/build/
+*.egg-info/
+.eggs/
+
+## 4. IDE and OS Artifacts ##
+# Ignore common operating system and IDE files
+.DS_Store
+Thumbs.db
+
+## 5. Other generated files ##
+# If your project creates any logs or temporary files, add them here
+# Example:
+# *.log
+
+# LaTeX compilation artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.nav
+*.snm
+*.toc
+*.out
+*.vrb
