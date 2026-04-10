@@ -1,0 +1,116 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\geometry{a4paper, margin=1in}
+
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegray},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{Stochastic Anomaly Simulator \\ \large Project Documentation}
+\author{Pole Anomaly Project}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+This document outlines the architecture, setup, and execution modules of the Stochastic Anomaly Simulator pipeline. The project is designed to inject mathematically accurate, user-defined geometrically deformed anomalies (such as Squares, Exponential Curves, and Bell Curves) into synthetic radiation noise based on real-world sensor baselines.
+
+\section{Quick Setup Guide}
+This project isolates dependencies using a Python virtual environment to ensure absolute reproducibility. 
+
+\subsection{Environment Setup}
+To initialize the project on a new machine, execute the following commands in the root of the project:
+
+\begin{lstlisting}[language=bash]
+# 1. Create a Python Virtual Environment
+python -m venv .venv
+
+# 2. Activate the Environment (Windows PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# 3. Install strictly required numerical libraries
+pip install -r requirements.txt
+\end{lstlisting}
+
+\subsection{Dependencies}
+The \texttt{requirements.txt} installs the following core standard math libraries:
+\begin{itemize}
+    \item \texttt{numpy} \& \texttt{pandas}: For fast mathematical array manipulations and template CSV handling.
+    \item \texttt{plotly}: For high-fidelity, interactive visualizations saved in HTML logs.
+    \item \texttt{scipy}, \texttt{statsmodels}, \texttt{tslearn}: Required specific dependencies for statistical interpolation and historical legacy dataset tests.
+\end{itemize}
+
+\section{File Structure Review}
+The repository enforces a strict separation of concerns, divided into modular directories:
+
+\begin{itemize}
+    \item \textbf{\texttt{anomalies/}}: Contains the normalized \texttt{.csv} blueprints (templates) for different anomaly shapes (e.g., \texttt{exp\_square.csv}, \texttt{bell.csv}, \texttt{m\_sq.csv}).
+    \item \textbf{\texttt{data/}}: Contains raw background sensor readings (e.g., \texttt{2015\_months\_DebitDoseA.txt}) and the final generated output pipeline \texttt{synthetic\_custom\_dataset.csv} utilized for neural network training.
+    \item \textbf{\texttt{logs/}}: The destination for Plotly's interactable HTML visualizations. Provides a pure geometric proof of concept without requiring external dashboard readers.
+    \item \textbf{\texttt{src/}}: Stores the pure mathematics and geometric generator libraries, decoupled from direct script logic.
+    \item \textbf{\texttt{script/}}: Stores execution pipelines and visualization launchers. Scripts utilize the math from \texttt{src/} to generate datasets or debug plots.
+\end{itemize}
+
+\section{Explanation of the Engine and Scripts}
+
+\subsection{\texttt{src/anomaly\_generator.py}}
+This is the core physics computational engine. It provides the \texttt{generate\_anomaly()} function which transforms a normalized CSV blueprint into a physical discrete array anomaly string. The engine mathematically scales the template temporally (period span) and vertically (amplitude intensity) while embedding Gaussian "deformation" limits declared in the CSV file logic.
+
+\subsection{\texttt{script/generate\_custom\_dataset.py}}
+The final execution pipeline for training. It parses the real noise characteristics (Mean, Standard Deviation) from the original physical gamma sensor. Using a baseline simulation of 10,000 to 50,000 steps, it spontaneously samples anomaly templates from the library, calculates randomized injection amplitudes (e.g., 5x to 25x STD multipliers) and duration bounds, and seamlessly injects them into the dataset, tagging absolute ground-truth labels alongside cleanly tracking the pure anomaly wave.
+
+\subsection{\texttt{script/test\_generator\_deformation.py}}
+A visual sandbox and boundary debugging tool. Iterating automatically over all discovered templates in the \texttt{anomalies/} directory, it runs exactly 5 localized chaotic generation iterations of each template to visually verify and validate the mathematical variability limits enforced by the template's parameters. Exports directly to \texttt{anomaly\_template\_deformation\_test.html}.
+
+\subsection{\texttt{script/visualize\_anomalies\_templates.py}}
+This script simply visualizes the pure original mathematical blueprints. It renders the pure lines and graphs the interpolation properties exactly as described in the blueprint CSV to a localized HTML, without injecting randomization or temporal noise.
+
+\section{Anomalies Templates Creation}
+Instead of relying on rigid pre-recorded dataset distributions like legacy UCR databases, targeted geometric structures are freely drawn and mathematically described in the \texttt{anomalies/} folder.
+
+\subsection{Configuration Blueprint (CSV Logic)}
+A standard anomaly template requires 7 strict column definitions mapping logic coordinates and behavioral constraints:
+\\\texttt{time, value, t\_minus, t\_plus, v\_minus, v\_plus, interp}
+
+\begin{itemize}
+    \item \textbf{time \& value}: Standardized physical shape coordinates (normally scaling from 0.0 to 1.0). They map the major mathematical inflection milestones of the curve.
+    \item \textbf{Deformation Multipliers (t\_minus, t\_plus, v\_minus, v\_plus)}: Defines spatial jitter limits per node. A value of \texttt{1.0} allows symmetric Gaussian distortion up to 100\% of the global script variance parameter. A value of \texttt{0.0} creates an unyielding geometric wall perfectly locking the point in that specified space direction. 
+    \item \textbf{interp (Interpolation Mode)}: Defines the localized mathematical connection trajectory bridging the gap toward the targeted point.
+    \begin{itemize}
+        \item \texttt{linear}: Connects sequential milestones with a simple Euclidean linear straight interpolation fallback.
+        \item \texttt{exp}: Instigates a smooth sluggish temporal acceleration morphing into a harsh geometric peak, useful for raw exponential growth burst characterizations.
+        \item \texttt{bell}: Executes a fractional phase-shift cosine envelope ($\cos(\pi x)$), generating an intensely organic smooth "S-curve". Ensures a perfect non-rigid mathematical slope shift suitable for defining Gaussian-like topographic bell shapes.
+    \end{itemize}
+\end{itemize}
+
+\end{document}
