@@ -43,6 +43,7 @@ def create_synthetic_dataset():
     time_steps = np.arange(N_synthetic)
     synthetic_background = np.random.normal(loc=mean_noise, scale=std_noise, size=N_synthetic)
     synthetic_background = np.clip(synthetic_background, 0, None) # physical radiation can't be negative
+    pure_anomalies = np.zeros(N_synthetic, dtype=float)
     labels = np.zeros(N_synthetic, dtype=int)
     anomaly_classes_text = np.array(["Normal Background"] * N_synthetic, dtype=object)
 
@@ -72,8 +73,8 @@ def create_synthetic_dataset():
         df_template = loaded_templates[chosen_template_name]
         
         target_amplitude = std_noise * np.random.uniform(3.0, 7.6)
-        target_period = np.random.randint(100, 300)
-        variance_level = np.random.uniform(0.04, 0.08) # deformation jitter amount
+        target_period = np.random.randint(200, 500)
+        variance_level = np.random.uniform(0.02, 0.08) # deformation jitter amount
 
         t_discrete, v_discrete = generate_anomaly(
             df_template, 
@@ -88,9 +89,10 @@ def create_synthetic_dataset():
         for j in range(length_spike):
             if idx + j < N_synthetic:
                 synthetic_background[idx + j] += v_discrete[j]
+                pure_anomalies[idx + j] += v_discrete[j]
                 
                 # Ground truth label
-                if v_discrete[j] > (std_noise * 1.5): # Mark core anomaly points as 1
+                if v_discrete[j] > 1e-2: # Mark entire raised shape as anomaly
                     labels[idx + j] = 1
                     anomaly_classes_text[idx + j] = f"Anomaly: {chosen_template_name.capitalize()}"
 
@@ -116,6 +118,15 @@ def create_synthetic_dataset():
         marker=dict(color='red', size=5),
         hovertext=anomaly_classes_text[anomalous_points],
         hoverinfo="x+y+text"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=time_steps, 
+        y=pure_anomalies + mean_noise, 
+        mode='lines', 
+        name='Pure Anomaly Shapes (No Noise)',
+        line=dict(color='orange', width=2),
+        hoverinfo="skip"
     ))
 
     fig.update_layout(
