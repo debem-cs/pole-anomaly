@@ -1,6 +1,7 @@
 time,value,t_minus,t_plus,v_minus,v_plus,interp
 0.0,0.0,0,0,0,0,bell
-0.4,1.0,1,1,1,1,linear
-0.8,1.0,1,0,1,1,linear
+0.2,1,1,1,1,1,bell
+0.4,0.6,1,1,1,1,linear
+0.8,0.6,1,0,1,1,linear
 0.8,0.0,0,1,1,1,linear
 1,0.0,0,0,0,0,linear

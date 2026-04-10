@@ -22,11 +22,11 @@ def create_synthetic_dataset():
     filename = os.path.join(data_dir, '2015_months_DebitDoseA.txt')
     try:
         data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
-        mois = 2 
+        mois = 3 
         real_background = data_gamma[:, mois]
         
         # Clean boundaries
-        Nh = 60
+        Nh = 400
         N = len(real_background)
         real_background = real_background[Nh:N-Nh]
         
@@ -35,11 +35,11 @@ def create_synthetic_dataset():
         print(f"Sensor noise characteristics -> Mean: {mean_noise:.2f}, Standard Deviation: {std_noise:.2f}")
     except FileNotFoundError:
         print(f"Error: Could not find {filename}. Using default noise estimates.")
-        mean_noise = 20.0
-        std_noise = 1.5
+        mean_noise = 100.0
+        std_noise = 4.5
 
     # 2. Generate completely SYNTHETIC background noise
-    N_synthetic = 10000
+    N_synthetic = 50000
     time_steps = np.arange(N_synthetic)
     synthetic_background = np.random.normal(loc=mean_noise, scale=std_noise, size=N_synthetic)
     synthetic_background = np.clip(synthetic_background, 0, None) # physical radiation can't be negative
@@ -61,7 +61,7 @@ def create_synthetic_dataset():
     template_names = list(loaded_templates.keys())
 
     # 4. Inject
-    num_anomalies = np.random.randint(6, 9) # 6 to 8 anomalies
+    num_anomalies = np.random.randint(20, 30) # 20 to 30 anomalies
     spacing = N_synthetic // (num_anomalies + 1)
     inject_points = [spacing * i + np.random.randint(-200, 200) for i in range(1, num_anomalies + 1)]
 
@@ -71,7 +71,7 @@ def create_synthetic_dataset():
         chosen_template_name = np.random.choice(template_names)
         df_template = loaded_templates[chosen_template_name]
         
-        target_amplitude = std_noise * np.random.uniform(10.0, 25.0)
+        target_amplitude = std_noise * np.random.uniform(3.0, 7.6)
         target_period = np.random.randint(100, 300)
         variance_level = np.random.uniform(0.04, 0.08) # deformation jitter amount
 
