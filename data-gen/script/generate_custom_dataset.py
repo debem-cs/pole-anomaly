@@ -139,6 +139,8 @@ def create_synthetic_dataset():
 
     output_plot_path = os.path.join(logs_dir, 'synthetic_custom_dataset.html')
     fig.write_html(output_plot_path)
+    output_png_path = os.path.join(logs_dir, 'synthetic_custom_dataset.png')
+    fig.write_image(output_png_path)
 
     # Save CSV
     output_csv_path = os.path.join(data_dir, 'synthetic_custom_dataset.csv')

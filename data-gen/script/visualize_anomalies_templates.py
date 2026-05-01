@@ -135,9 +135,11 @@ def visualize_anomalies():
         template='plotly_dark'
     )
     
-    output_path = os.path.join(logs_dir, 'anomaly_templates.html')
-    fig.write_html(output_path)
-    print(f"\nVisualization saved successfully to: {output_path}")
+    out_path = os.path.join(logs_dir, 'anomaly_templates.html')
+    fig.write_html(out_path)
+    out_png_path = os.path.join(logs_dir, 'anomaly_templates.png')
+    fig.write_image(out_png_path)
+    print(f"Templates visualization saved to: {out_path}")
 
 if __name__ == "__main__":
     visualize_anomalies()

@@ -49,6 +49,8 @@ def test_anomaly_deformation():
     os.makedirs(logs_dir, exist_ok=True)
     out = os.path.join(logs_dir, 'anomaly_template_deformation_test.html')
     fig.write_html(out)
+    out_png = os.path.join(logs_dir, 'anomaly_template_deformation_test.png')
+    fig.write_image(out_png)
     print(f"Test visualization saved successfully to: {out}")
 
 if __name__ == "__main__":
