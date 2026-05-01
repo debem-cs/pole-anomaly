@@ -65,28 +65,4 @@ If the objective requires detecting the anomaly exactly at its onset by pinpoint
     \item \textbf{Loss Function:} Utilize specialized loss functions like \textbf{Dice Loss} or \textbf{Focal Loss} to handle the severe class imbalance, as the vast majority of points in the dataset represent normal background noise.
 \end{enumerate}
 
-\newpage
-\section{Reference PyTorch Implementation: 1D-CNN}
 
-To validate the proposed architectures, a functional baseline implementation of the 1D-CNN was developed using PyTorch. The codebase is organized into three modular scripts within the \texttt{1D-CNN} directory:
-
-\subsection{Data Processing (\texttt{dataset\_loader.py})}
-This module bridges the synthetic \texttt{.csv} generator and the neural network. It executes the sliding window extraction with a default window size of 256 time steps and a stride of 32. It applies a \texttt{StandardScaler} (fit exclusively on the training set to prevent data leakage) and reshapes the tensors into the strict \texttt{(Batch\_Size, Channels, Sequence\_Length)} format required by PyTorch's \texttt{nn.Conv1d}. Finally, it creates a stratified train/test split.
-
-\subsection{Architecture Definition (\texttt{model.py})}
-The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements the exact 3-block convolutional architecture proposed:
-\begin{itemize}
-    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=32, kernel=5)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
-    \item \textbf{Block 2:} \texttt{Conv1d(in=32, out=64, kernel=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
-    \item \textbf{Block 3:} \texttt{Conv1d(in=64, out=128, kernel=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
-\end{itemize}
-The network utilizes an \texttt{AdaptiveAvgPool1d(1)} to collapse the temporal dimension into a vector of size 128, which is then fed into a final \texttt{Linear} layer. The output is a raw logit, optimized for numerical stability during loss calculation.
-
-\subsection{Training Loop (\texttt{train.py})}
-The execution script establishes the complete PyTorch training ecosystem:
-\begin{itemize}
-    \item \textbf{DataLoaders:} Converts the numpy arrays into \texttt{TensorDataset} and wraps them in \texttt{DataLoader} instances for efficient batching and shuffling.
-    \item \textbf{Imbalance Handling:} Calculates the ratio of normal to anomalous windows and applies a \texttt{pos\_weight} to the \texttt{BCEWithLogitsLoss} criterion. This forces the optimizer to heavily penalize false negatives, adjusting for the severe class imbalance intrinsic to anomaly detection.
-    \item \textbf{Optimization \& Validation:} Employs the Adam optimizer with a learning rate of 0.001. A custom early stopping mechanism monitors the validation loss, saving the \texttt{best\_1d\_cnn\_pytorch.pth} weights only when the validation loss improves, completely halting training if performance plateaus for 5 consecutive epochs.
-    \item \textbf{Evaluation:} Evaluates the final best model on the unseen test set, calculating Loss, Accuracy, and Recall metrics, utilizing a standard Sigmoid threshold of 0.5 to convert logits into binary predictions.
-\end{itemize}

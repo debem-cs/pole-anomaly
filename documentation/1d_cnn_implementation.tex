@@ -1,0 +1,34 @@
+\section{Reference PyTorch Implementation: 1D-CNN}
+
+To validate the proposed architectures, a functional baseline implementation of the 1D-CNN was developed using PyTorch. The architecture has been specifically designed for \textbf{Multi-Class Classification}, capable of distinguishing between various anomaly templates (Bell, Square, M, etc.). The codebase is organized into modular scripts within the \texttt{1D-CNN} directory:
+
+\subsection{Data Processing (\texttt{dataset\_loader.py} \& Generator)}
+The data generation pipeline was upgraded to assign specific integer IDs to each anomaly template, exporting a \texttt{class\_mapping.txt} reference file. The \texttt{dataset\_loader.py} module bridges this synthetic \texttt{.csv} generator and the neural network. It executes the sliding window extraction (default size 256, stride 32). It determines the window's label by extracting the maximum class ID present within the window, converting the sequence into a categorical multi-class target. It applies a \texttt{StandardScaler} and reshapes the tensors into the strict \texttt{(Batch\_Size, Channels, Sequence\_Length)} format required by PyTorch.
+
+\subsection{Architecture Definition (\texttt{model.py})}
+The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements the exact 3-block convolutional architecture proposed:
+\begin{itemize}
+    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=32, kernel=5)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
+    \item \textbf{Block 2:} \texttt{Conv1d(in=32, out=64, kernel=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
+    \item \textbf{Block 3:} \texttt{Conv1d(in=64, out=128, kernel=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
+\end{itemize}
+The network utilizes an \texttt{AdaptiveAvgPool1d(1)} to collapse the temporal dimension into a vector of size 128. This is fed into a final \texttt{Linear} layer configured to output \texttt{num\_classes} independent logits.
+
+\subsection{Training Loop (\texttt{train.py})}
+The execution script establishes the complete PyTorch training ecosystem:
+\begin{itemize}
+    \item \textbf{DataLoaders:} Converts the numpy arrays into \texttt{TensorDataset} and wraps them in \texttt{DataLoader} instances for efficient batching.
+    \item \textbf{Imbalance Handling:} Uses \texttt{np.bincount} to dynamically calculate the distribution of the multiple classes. It passes these inverse frequencies as \texttt{weight} to the \texttt{CrossEntropyLoss} criterion, forcing the optimizer to treat rare shapes with the same importance as the overwhelming normal background noise.
+    \item \textbf{Optimization \& Validation:} Employs the Adam optimizer. A custom early stopping mechanism monitors the validation loss, saving the \texttt{best\_1d\_cnn\_pytorch.pth} weights only when the validation loss improves.
+    \item \textbf{Evaluation:} Evaluates the model using \texttt{torch.argmax} to determine the highest confidence class, achieving over 96\% test accuracy on the multi-class simulated data.
+\end{itemize}
+
+\subsection{Inference Visualization (\texttt{visualize\_inference.py})}
+To interpret the model's behavior on streaming data, a visualization script runs the trained model over a continuous segment of the dataset. It applies a rolling average to the raw probabilities to smooth out high-frequency fluctuations caused by the sliding window stride. The output is an interactive dual-axis Plotly graph rendering distinct, colored probability curves for each specific anomaly class.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{media/cnn_inference_visualization.png}
+    \caption{Multi-Class 1D-CNN Confidence Probability mapped against Simulated Gamma Noise}
+    \label{fig:cnn_visualization}
+\end{figure}

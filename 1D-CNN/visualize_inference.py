@@ -24,7 +24,7 @@ def main():
     print("Loading data...")
     df = pd.read_csv(data_path)
     
-    segment_size = min(5000, len(df))
+    segment_size = min(50000, len(df))
     df_segment = df.iloc[:segment_size]
     
     gamma_dose = df_segment['gamma_dose'].values
@@ -106,6 +106,8 @@ def main():
     for c in range(1, num_classes):
         df_probs = pd.DataFrame({'prob': probabilities[:, c]})
         df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
+        # Apply a rolling average to smooth out the high-frequency sliding window fluctuations
+        df_probs['prob'] = df_probs['prob'].rolling(window=30, center=True, min_periods=1).mean()
         smooth_probs = df_probs['prob'].values
         
         color = colors[(c - 1) % len(colors)]
