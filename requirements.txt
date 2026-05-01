@@ -4,3 +4,4 @@ plotly
 scipy
 tslearn
 statsmodels
+matplotlib

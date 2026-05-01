@@ -13,7 +13,7 @@ data_dir = os.path.join(script_dir, '..', 'data')
 logs_dir = os.path.join(script_dir, '..', 'logs')
 
 # 1. Evaluate REAL background characteristics
-filename = os.path.join(data_dir, '2015_months_DebitDoseA.txt')
+filename = os.path.join(script_dir, '..', '..', 'data', '2015_months_DebitDoseA.txt')
 try:
     data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
     mois = 2 
@@ -134,11 +134,11 @@ fig.update_layout(
 )
 
 # Rename to synthetic_dataset.html as requested
-output_plot_path = os.path.join(logs_dir, 'synthetic_dataset.html')
+output_plot_path = os.path.join(logs_dir, 'legacy_ucr_synthetic_dataset.html')
 fig.write_html(output_plot_path)
 
 # Also save the data for training later
-output_csv_path = os.path.join(data_dir, 'synthetic_dataset.csv')
+output_csv_path = os.path.join(data_dir, 'legacy_ucr_synthetic_dataset.csv')
 data_stack = np.column_stack((time_steps, synthetic_background, labels))
 np.savetxt(output_csv_path, data_stack, delimiter=',', header='time_step,gamma_dose,is_anomaly', comments='')
 

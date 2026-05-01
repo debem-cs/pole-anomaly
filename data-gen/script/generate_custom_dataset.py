@@ -19,7 +19,7 @@ def create_synthetic_dataset():
     os.makedirs(data_dir, exist_ok=True)
     
     # 1. Evaluate REAL background characteristics
-    filename = os.path.join(data_dir, '2015_months_DebitDoseA.txt')
+    filename = os.path.join(root_dir, '..', 'data', '2015_months_DebitDoseA.txt')
     try:
         data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
         mois = 3 
