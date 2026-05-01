@@ -7,6 +7,7 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{float}
+\usepackage{accsupp}
 
 \geometry{a4paper, margin=1in}
 
@@ -28,7 +29,8 @@
     showspaces=false,                
     showstringspaces=false,
     showtabs=false,                  
-    tabsize=2
+    tabsize=2,
+    escapechar=|
 }
 \lstset{style=mystyle}
 
@@ -50,5 +52,8 @@
 \newpage
 
 \input{data_generation.tex}
+\newpage
+
+\input{proposed_architectures.tex}
 
 \end{document}

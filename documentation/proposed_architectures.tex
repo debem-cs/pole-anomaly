@@ -1,0 +1,27 @@
+\section{Proposed Architectures for Anomaly Identification}
+
+Based on the characteristics of the synthetic dataset and the overall project objectives (classification performance, computational cost, and explainability), the following neural network architectures are proposed for anomaly detection and classification. 
+
+The simulated data presents specific challenges: extreme high-frequency gamma noise, distinct geometric signatures for anomalies (e.g., Bell, M, Square), and significant temporal and amplitude deformation. The models must be robust to background fluctuations and possess translation and scale invariance to generalize effectively.
+
+\subsection{1D Convolutional Neural Networks (1D-CNN) / ResNet-1D}
+1D convolutions are excellent for extracting local morphological features (like the sharp edges of a "Square" or the smooth curve of a "Bell") regardless of where they appear in the time window.
+\begin{itemize}
+    \item \textbf{Performance \& Cost:} Highly efficient and parallelizable, making them computationally cheap to train and deploy for real-time inference on continuous sensor data streams.
+    \item \textbf{Explainability:} This architecture is directly compatible with Gradient-weighted Class Activation Mapping (\textbf{Grad-CAM}). Heatmaps can be generated over the input time series to visually prove that the model is activating on the structural milestones of the anomaly rather than simply overfitting to background noise.
+\end{itemize}
+
+\subsection{Convolutional Recurrent Neural Networks (CRNN)}
+This hybrid approach utilizes a 1D-CNN base to extract local features, followed by a recurrent layer (such as an LSTM or GRU) to process the temporal sequence of those features. This is particularly useful for complex shapes like "M" where the model needs to track a structured sequence of events over time (e.g., a peak, followed by a dip, followed by a second peak).
+\begin{itemize}
+    \item \textbf{Performance \& Cost:} Yields high accuracy for temporally stretched anomalies. The sequential processing of the RNN component adds a moderate computational overhead compared to a pure CNN.
+\end{itemize}
+
+\subsection{Transformers with Multi-Head Self-Attention}
+Time-series Transformers excel at finding correlations across different parts of the signal. The multi-head self-attention mechanism can learn to suppress the high-frequency gamma noise and focus entirely on the broader structural patterns of the anomalies.
+\begin{itemize}
+    \item \textbf{Explainability:} Attention mechanisms offer intrinsic explainability. The attention weights can be extracted and visualized to show exactly which time steps the model prioritized when making its classification decision, acting as a powerful and transparent complement to Grad-CAM.
+\end{itemize}
+
+\subsection{1D U-Net (Segmentation Approach)}
+If the objective requires detecting the anomaly exactly at its onset by pinpointing the precise start and end timestamps, framing the problem as a time-series segmentation task is highly effective. A 1D U-Net or Fully Convolutional Network (FCN) outputs a probability score for every single time step, effectively generating a localized bounding mask over the anomaly in real-time.
