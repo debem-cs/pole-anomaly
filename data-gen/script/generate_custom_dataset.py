@@ -61,6 +61,13 @@ def create_synthetic_dataset():
         
     template_names = list(loaded_templates.keys())
 
+    # Create mapping for multi-class
+    class_map = {name: i + 1 for i, name in enumerate(template_names)}
+    with open(os.path.join(data_dir, 'class_mapping.txt'), 'w') as f:
+        f.write("0: Normal Background\n")
+        for name, cls_id in class_map.items():
+            f.write(f"{cls_id}: {name}\n")
+
     # 4. Inject
     num_anomalies = np.random.randint(20, 30) # 20 to 30 anomalies
     spacing = N_synthetic // (num_anomalies + 1)
@@ -91,9 +98,9 @@ def create_synthetic_dataset():
                 synthetic_background[idx + j] += v_discrete[j]
                 pure_anomalies[idx + j] += v_discrete[j]
                 
-                # Ground truth label
+                # Ground truth label (multi-class)
                 if v_discrete[j] > 1e-2: # Mark entire raised shape as anomaly
-                    labels[idx + j] = 1
+                    labels[idx + j] = class_map[chosen_template_name]
                     anomaly_classes_text[idx + j] = f"Anomaly: {chosen_template_name.capitalize()}"
 
     # 5. Plot
@@ -109,7 +116,7 @@ def create_synthetic_dataset():
         hoverinfo="x+y+text"
     ))
 
-    anomalous_points = np.where(labels == 1)[0]
+    anomalous_points = np.where(labels > 0)[0]
     fig.add_trace(go.Scatter(
         x=time_steps[anomalous_points],
         y=synthetic_background[anomalous_points],

@@ -6,3 +6,5 @@ tslearn
 statsmodels
 matplotlib
 kaleido
+torch
+scikit-learn
