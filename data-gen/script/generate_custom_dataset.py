@@ -39,7 +39,7 @@ def create_synthetic_dataset():
         std_noise = 4.5
 
     # 2. Generate completely SYNTHETIC background noise
-    N_synthetic = 50000
+    N_synthetic = 1000000
     time_steps = np.arange(N_synthetic)
     synthetic_background = np.random.normal(loc=mean_noise, scale=std_noise, size=N_synthetic)
     synthetic_background = np.clip(synthetic_background, 0, None) # physical radiation can't be negative
@@ -69,7 +69,7 @@ def create_synthetic_dataset():
             f.write(f"{cls_id}: {name}\n")
 
     # 4. Inject
-    num_anomalies = np.random.randint(20, 30) # 20 to 30 anomalies
+    num_anomalies = np.random.randint(150, 250) # 150 to 250 anomalies for 1M steps
     spacing = N_synthetic // (num_anomalies + 1)
     inject_points = [spacing * i + np.random.randint(-200, 200) for i in range(1, num_anomalies + 1)]
 
