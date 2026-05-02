@@ -1,30 +1,60 @@
 \section{Reference PyTorch Implementation: 1D-CNN}
 
-To validate the proposed architectures, a functional baseline implementation of the 1D-CNN was developed using PyTorch. The architecture has been specifically designed for \textbf{Multi-Class Classification}, capable of distinguishing between various anomaly templates (Bell, Square, M, etc.). The codebase is organized into modular scripts within the \texttt{1D-CNN} directory:
+To validate the proposed architectures, a functional baseline implementation of the 1D-CNN was developed using PyTorch. The architecture has been specifically designed for \textbf{Multi-Class Classification}, capable of distinguishing between various anomaly templates (Bell, Square, M, etc.). The codebase is organized into modular scripts within the \texttt{1D-CNN} directory, with full CUDA GPU acceleration support.
 
-\subsection{Data Processing (\texttt{dataset\_loader.py} \& Generator)}
-The data generation pipeline was upgraded to assign specific integer IDs to each anomaly template, exporting a \texttt{class\_mapping.txt} reference file. The \texttt{dataset\_loader.py} module bridges this synthetic \texttt{.csv} generator and the neural network. It executes the sliding window extraction (default size 256, stride 32). It determines the window's label by extracting the maximum class ID present within the window, converting the sequence into a categorical multi-class target. It applies a \texttt{StandardScaler} and reshapes the tensors into the strict \texttt{(Batch\_Size, Channels, Sequence\_Length)} format required by PyTorch.
+\subsection{Data Processing (\texttt{dataset\_loader.py})}
+The \texttt{dataset\_loader.py} module bridges the synthetic \texttt{.csv} generator and the neural network. It performs the following steps:
+\begin{enumerate}
+    \item \textbf{Temporal Split:} The continuous signal is split chronologically \textit{before} windowing: the first 80\% of time steps are reserved for training and the remaining 20\% for testing. This prevents \textbf{data leakage}, which would occur with a random split because overlapping windows (stride 32 over a 512-point window) share up to 94\% of their data points.
+    \item \textbf{Sliding Window Extraction:} Each split is independently sliced into overlapping windows (configurable size, default 512, stride 32).
+    \item \textbf{Threshold-Based Labeling:} A window is only labeled as a specific anomaly class if the anomaly occupies at least \textbf{10\%} of the window length. This prevents the CNN from learning that windows containing 99\% pure noise should be classified as anomalies. When the threshold is met, the most frequent anomaly class ID within the window is assigned via majority voting (\texttt{np.unique} with \texttt{return\_counts}).
+    \item \textbf{Global Z-Score Normalization:} A global mean $\mu$ and standard deviation $\sigma$ are computed across the entire training set (not per-feature) to preserve the morphological shapes of the time series. The test set is normalized using these same statistics. Critically, these values are persisted to \texttt{normalization\_stats.json} so that the inference pipeline applies \textit{identical} scaling:
+    \begin{equation}
+        x_{\mathrm{scaled}} = \frac{x - \mu_{\mathrm{train}}}{\sigma_{\mathrm{train}}}
+    \end{equation}
+    \item \textbf{Tensor Reshaping:} The output is reshaped into the strict \texttt{(Batch\_Size, 1, Window\_Size)} format required by PyTorch's \texttt{Conv1d} layers.
+\end{enumerate}
 
 \subsection{Architecture Definition (\texttt{model.py})}
-The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements the exact 3-block convolutional architecture proposed:
+The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a 5-block convolutional architecture with a progressively narrowing kernel strategy to balance global structure capture with fine-grained feature extraction:
 \begin{itemize}
-    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=32, kernel=5)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
-    \item \textbf{Block 2:} \texttt{Conv1d(in=32, out=64, kernel=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
-    \item \textbf{Block 3:} \texttt{Conv1d(in=64, out=128, kernel=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d}.
+    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=32, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 2:} \texttt{Conv1d(in=32, out=64, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 3:} \texttt{Conv1d(in=64, out=128, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 4:} \texttt{Conv1d(in=128, out=128, kernel=3, padding=1)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 5:} \texttt{Conv1d(in=128, out=256, kernel=3, padding=1)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
 \end{itemize}
-The network utilizes an \texttt{AdaptiveAvgPool1d(1)} to collapse the temporal dimension into a vector of size 128. This is fed into a final \texttt{Linear} layer configured to output \texttt{num\_classes} independent logits.
+The early layers use larger kernels (7, 7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while later layers use smaller kernels (5, 3, 3) to refine local features. The network utilizes an \texttt{AdaptiveAvgPool1d(1)} to collapse the temporal dimension into a fixed vector of size 256, regardless of the input window size. This vector is then passed through a classifier head composed of \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(256, 64)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(64, num\_classes)}. The dropout layers serve as regularization to prevent overfitting. The total model footprint is approximately 221,768 trainable parameters.
 
 \subsection{Training Loop (\texttt{train.py})}
-The execution script establishes the complete PyTorch training ecosystem:
+The training script establishes the complete PyTorch training ecosystem with GPU acceleration and comprehensive logging:
 \begin{itemize}
-    \item \textbf{DataLoaders:} Converts the numpy arrays into \texttt{TensorDataset} and wraps them in \texttt{DataLoader} instances for efficient batching.
-    \item \textbf{Imbalance Handling:} Uses \texttt{np.bincount} to dynamically calculate the distribution of the multiple classes. It passes these inverse frequencies as \texttt{weight} to the \texttt{CrossEntropyLoss} criterion, forcing the optimizer to treat rare shapes with the same importance as the overwhelming normal background noise.
-    \item \textbf{Optimization \& Validation:} Employs the Adam optimizer. A custom early stopping mechanism monitors the validation loss, saving the \texttt{best\_1d\_cnn\_pytorch.pth} weights only when the validation loss improves.
-    \item \textbf{Evaluation:} Evaluates the model using \texttt{torch.argmax} to determine the highest confidence class, achieving over 96\% test accuracy on the multi-class simulated data.
+    \item \textbf{Data Split:} Since the dataset loader already performs the temporal train/test split, the training script further divides the training set 80/20 into train/validation subsets using a random permutation for early stopping monitoring.
+    \item \textbf{Class Imbalance Handling:} Uses \texttt{np.bincount} to dynamically calculate the distribution of each class. It computes inverse frequency weights as $w_c = \frac{N_{\mathrm{total}}}{C \cdot N_c}$ and passes them to the \texttt{CrossEntropyLoss} criterion, forcing the optimizer to treat rare anomaly shapes with the same importance as the dominant normal background.
+    \item \textbf{Optimization:} Employs the Adam optimizer with an initial learning rate of $10^{-3}$.
+    \item \textbf{Learning Rate Scheduling:} A \texttt{ReduceLROnPlateau} scheduler (patience 4 epochs, factor 0.5) monitors the validation loss and halves the learning rate when progress stalls. This reduces the oscillatory behavior observed in the validation loss during later training stages.
+    \item \textbf{Early Stopping:} A patience-based mechanism (10 epochs) monitors the validation loss. The best model weights are saved to \texttt{best\_1d\_cnn\_pytorch.pth} only when the validation loss improves.
+    \item \textbf{Evaluation:} After training, the best checkpoint is reloaded and evaluated on the held-out test set. A per-class accuracy breakdown is computed and logged.
+    \item \textbf{Logging:} A \texttt{.txt} log file is generated in the \texttt{logs/} directory, recording all hyperparameters, environment details (PyTorch version, GPU model, CUDA version), class distributions, per-epoch loss curves with current learning rate, training duration, and per-class test accuracy.
 \end{itemize}
 
-\subsection{Inference Visualization (\texttt{visualize\_inference.py})}
-To interpret the model's behavior on streaming data, a visualization script runs the trained model over a continuous segment of the dataset. It applies a rolling average to the raw probabilities to smooth out high-frequency fluctuations caused by the sliding window stride. The output is an interactive dual-axis Plotly graph rendering distinct, colored probability curves for each specific anomaly class.
+\subsection{Inference and Evaluation (\texttt{visualize\_inference.py})}
+To interpret the model's behavior on streaming data, a visualization and evaluation script runs the trained model over a continuous segment of the dataset using a fine-grained sliding window (stride of 10). Inference is performed on GPU when available. Two key design decisions distinguish this inference pipeline from naive approaches:
+
+\begin{enumerate}
+    \item \textbf{Consistent Normalization:} The inference script loads the $\mu_{\mathrm{train}}$ and $\sigma_{\mathrm{train}}$ values saved during training from \texttt{normalization\_stats.json}. This ensures the model sees the same numerical distribution it was trained on, which is critical as even small distribution shifts can severely degrade multi-class accuracy.
+    \item \textbf{Overlapping Window Accumulation:} Instead of assigning each window's prediction to a single center point, the softmax probability vector is \textbf{accumulated} across all points covered by the window. With stride 10 and window size 512, each point is covered by up to 51 overlapping windows. The final per-point class probability is the average across all contributing windows:
+    \begin{equation}
+        P_{\mathrm{final}}(c \mid t) = \frac{1}{|\mathcal{W}_t|} \sum_{w \in \mathcal{W}_t} P_w(c)
+    \end{equation}
+    where $\mathcal{W}_t$ is the set of all windows covering time step $t$. This ensemble-like averaging significantly reduces prediction noise.
+\end{enumerate}
+
+The script produces the following outputs:
+\begin{enumerate}
+    \item \textbf{Interactive Visualization:} An interactive dual-axis Plotly graph rendering the simulated gamma noise on the primary axis and distinct, colored probability curves for each anomaly class on the secondary axis. A rolling average (window of 30) is applied to smooth the accumulated probabilities.
+    \item \textbf{Per-Class Confusion Matrix:} The log computes True Positives, True Negatives, False Positives, and False Negatives for each class by comparing the model's \texttt{argmax} predictions against the ground truth labels. From these values, it derives Precision, Recall (Sensitivity), F1-Score, and Specificity, reporting both macro and weighted averages.
+\end{enumerate}
 
 \begin{figure}[H]
     \centering

@@ -4,16 +4,82 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+from datetime import datetime
 from dataset_loader import load_data
 from model import Anomaly1DCNN
 
 def main():
-    window_size = 256
+    window_size = 512
     batch_size = 64
-    epochs = 30
+    epochs = 50
+    learning_rate = 0.001
+    patience = 10
     
-    print("Loading and preprocessing data...")
+    script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
+    logs_dir = os.path.join(script_dir, 'logs')
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    # Create timestamped log file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_path = os.path.join(logs_dir, f'training_log.txt')
+    
+    def log(msg):
+        print(msg)
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(msg + '\n')
+    
+    log("=" * 60)
+    log("1D-CNN MULTI-CLASS TRAINING LOG")
+    log(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    log("=" * 60)
+    
+    # Hyperparameters
+    log("\n--- Hyperparameters ---")
+    log(f"Window Size: {window_size}")
+    log(f"Batch Size: {batch_size}")
+    log(f"Max Epochs: {epochs}")
+    log(f"Learning Rate: {learning_rate}")
+    log(f"Early Stopping Patience: {patience}")
+    log(f"Sliding Window Stride: 32")
+    log(f"LR Scheduler: ReduceLROnPlateau (patience=4, factor=0.5)")
+    log(f"Data Augmentation: None (randomness handled by data generator)")
+    log(f"Train/Test Split: Temporal (no data leakage)")
+    
+    # Device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    log(f"\n--- Environment ---")
+    log(f"PyTorch Version: {torch.__version__}")
+    log(f"Device: {device}")
+    if device.type == 'cuda':
+        log(f"GPU: {torch.cuda.get_device_name(0)}")
+        log(f"CUDA Version: {torch.version.cuda}")
+    
+    log("\nLoading and preprocessing data...")
     X_train, X_test, y_train, y_test, num_classes = load_data(window_size=window_size, stride=32)
+    
+    log(f"\n--- Dataset ---")
+    log(f"Training samples: {len(X_train)}")
+    log(f"Test samples: {len(X_test)}")
+    log(f"Number of classes: {num_classes}")
+    log(f"Input shape: {X_train.shape}")
+    
+    # Class distribution
+    class_counts = np.bincount(y_train.astype(int), minlength=num_classes)
+    log(f"\n--- Class Distribution (Training Set) ---")
+    
+    class_mapping_path = os.path.join(script_dir, '..', 'data-gen', 'data', 'class_mapping.txt')
+    class_names = {}
+    if os.path.exists(class_mapping_path):
+        with open(class_mapping_path, 'r') as f:
+            for line in f:
+                if ':' in line:
+                    c_id, name = line.split(':')
+                    class_names[int(c_id.strip())] = name.strip()
+    
+    for i, count in enumerate(class_counts):
+        name = class_names.get(i, f"Class {i}")
+        pct = 100 * count / len(y_train)
+        log(f"  {name} (ID {i}): {count} samples ({pct:.1f}%)")
     
     # Convert to PyTorch tensors
     X_train_t = torch.tensor(X_train, dtype=torch.float32)
@@ -21,43 +87,59 @@ def main():
     X_test_t = torch.tensor(X_test, dtype=torch.float32)
     y_test_t = torch.tensor(y_test, dtype=torch.long)
     
-    train_dataset = TensorDataset(X_train_t, y_train_t)
+    # Split training into train + validation (80/20 of the training portion)
+    val_size = int(0.2 * len(X_train_t))
+    train_size = len(X_train_t) - val_size
+    
+    generator = torch.Generator().manual_seed(42)
+    indices = torch.randperm(len(X_train_t), generator=generator)
+    train_indices = indices[:train_size]
+    val_indices = indices[train_size:]
+    
+    train_dataset = TensorDataset(X_train_t[train_indices], y_train_t[train_indices])
+    val_dataset = TensorDataset(X_train_t[val_indices], y_train_t[val_indices])
     test_dataset = TensorDataset(X_test_t, y_test_t)
     
-    val_size = int(0.2 * len(train_dataset))
-    train_size = len(train_dataset) - val_size
-    generator = torch.Generator().manual_seed(42)
-    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size], generator=generator)
+    log(f"\n--- Split ---")
+    log(f"Train: {train_size} | Validation: {val_size} | Test: {len(test_dataset)}")
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"\nTraining on device: {device}")
-    
     model = Anomaly1DCNN(in_channels=1, num_classes=num_classes).to(device)
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    log(f"\n--- Model Architecture ---")
+    log(f"Total Parameters: {total_params:,}")
+    log(f"Trainable Parameters: {trainable_params:,}")
     
     # Handle class imbalance using class weights
-    class_counts = np.bincount(y_train.astype(int), minlength=num_classes)
     total = len(y_train)
     class_weights = total / (num_classes * np.maximum(class_counts, 1))
     class_weights_tensor = torch.tensor(class_weights, dtype=torch.float32).to(device)
-    print(f"\nApplying class weights to balance training: {np.round(class_weights, 2)}")
+    log(f"\n--- Class Weights ---")
+    log(f"Weights: {np.round(class_weights, 2)}")
     
     criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=4, factor=0.5)
     
-    script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
     save_dir = os.path.join(script_dir, 'saved_models')
     os.makedirs(save_dir, exist_ok=True)
     model_path = os.path.join(save_dir, 'best_1d_cnn_pytorch.pth')
     
     best_val_loss = float('inf')
-    patience = 5
     patience_counter = 0
     
-    print("\nStarting Training...")
+    log(f"\n{'=' * 60}")
+    log("TRAINING")
+    log(f"{'=' * 60}")
+    log(f"{'Epoch':<8} {'Train Loss':<14} {'Val Loss':<14} {'LR':<12} {'Status'}")
+    log("-" * 62)
+    
+    train_start = datetime.now()
+    
     for epoch in range(epochs):
         model.train()
         train_loss = 0.0
@@ -86,25 +168,43 @@ def main():
                 
         val_loss /= len(val_loader.dataset)
         
-        print(f"Epoch {epoch+1:02d}/{epochs} - Train Loss: {train_loss:.4f} - Val Loss: {val_loss:.4f}")
+        # Step the LR scheduler
+        current_lr = optimizer.param_groups[0]['lr']
+        scheduler.step(val_loss)
         
+        status = ""
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), model_path)
             patience_counter = 0
+            status = "* saved"
         else:
             patience_counter += 1
+            status = f"patience {patience_counter}/{patience}"
             if patience_counter >= patience:
-                print(f"Early stopping triggered after {epoch+1} epochs.")
-                break
+                status = "EARLY STOP"
+        
+        log(f"{epoch+1:02d}/{epochs:<5} {train_loss:<14.4f} {val_loss:<14.4f} {current_lr:<12.6f} {status}")
+        
+        if patience_counter >= patience:
+            break
+    
+    train_duration = datetime.now() - train_start
+    log(f"\nTraining Duration: {train_duration}")
+    log(f"Best Validation Loss: {best_val_loss:.4f}")
                 
-    print("\nEvaluating on Test Set...")
+    log(f"\n{'=' * 60}")
+    log("TEST EVALUATION")
+    log(f"{'=' * 60}")
+    
     model.load_state_dict(torch.load(model_path, weights_only=True))
     model.eval()
     
     test_loss = 0.0
     correct = 0
     total = 0
+    all_preds = []
+    all_labels = []
     
     with torch.no_grad():
         for X_batch, y_batch in test_loader:
@@ -116,13 +216,29 @@ def main():
             preds = torch.argmax(outputs, dim=1)
             total += y_batch.size(0)
             correct += (preds == y_batch).sum().item()
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(y_batch.cpu().numpy())
 
     test_loss /= len(test_loader.dataset)
     test_acc = correct / total
     
-    print(f"Test Loss: {test_loss:.4f}")
-    print(f"Test Accuracy: {test_acc:.4f}")
-    print(f"\nModel successfully saved to {model_path}")
+    log(f"Test Loss: {test_loss:.4f}")
+    log(f"Test Accuracy: {test_acc:.4f} ({correct}/{total})")
+    
+    # Per-class accuracy
+    all_preds = np.array(all_preds)
+    all_labels = np.array(all_labels)
+    log(f"\n--- Per-Class Accuracy ---")
+    for c in range(num_classes):
+        mask = all_labels == c
+        if mask.sum() > 0:
+            class_acc = (all_preds[mask] == c).sum() / mask.sum()
+            name = class_names.get(c, f"Class {c}")
+            log(f"  {name} (ID {c}): {class_acc:.4f} ({(all_preds[mask] == c).sum()}/{mask.sum()})")
+    
+    log(f"\nModel saved to: {model_path}")
+    log(f"Log saved to: {log_path}")
+    log(f"\n{'=' * 60}")
 
 if __name__ == "__main__":
     main()

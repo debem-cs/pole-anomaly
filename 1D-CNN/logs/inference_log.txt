@@ -1,0 +1,72 @@
+============================================================
+1D-CNN MULTI-CLASS INFERENCE LOG
+Timestamp: 2026-05-02 23:15:25
+============================================================
+
+Loading data...
+
+--- Dataset ---
+Total dataset size: 100,000 points
+Inference segment: 50,000 points
+True anomaly points in segment: 11,898
+Number of classes: 8
+Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'exp_square', 4: 'M', 5: 'm_sq', 6: 'square', 7: 'sq_exp'}
+
+Loaded training normalization stats: mean=103.0083, std=8.8425
+
+--- Environment ---
+PyTorch Version: 2.12.0.dev20260408+cu128
+Device: cuda
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU
+
+--- Inference Parameters ---
+Window Size: 512
+Stride: 10
+Smoothing Window: 30
+Model: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\saved_models\best_1d_cnn_pytorch.pth
+Model Parameters: 221,768
+
+Running inference...
+Inference completed in 0:00:05.194251
+Total windows processed: 4,949
+Windows per second: 953
+
+--- Detection Summary ---
+  Normal Background: 25968 windows detected (avg confidence: 72.66%)
+  bell: 3638 windows detected (avg confidence: 71.55%)
+  bell_sq: 5206 windows detected (avg confidence: 69.04%)
+  exp_square: 2974 windows detected (avg confidence: 60.60%)
+  M: 2604 windows detected (avg confidence: 63.99%)
+  m_sq: 5150 windows detected (avg confidence: 56.46%)
+  square: 1368 windows detected (avg confidence: 57.87%)
+  sq_exp: 3084 windows detected (avg confidence: 67.95%)
+
+================================================================================
+PER-CLASS CONFUSION MATRIX ANALYSIS
+================================================================================
+Total evaluated windows: 49992
+Overall Accuracy: 0.7223 (36110/49992)
+
+Class                      TP     TN     FP     FN     Prec  Recall      F1    Spec
+--------------------------------------------------------------------------------
+Normal Background       25968  11898      0  12126   1.0000  0.6817  0.8107  1.0000
+bell                     1760  46116   1878    238   0.4838  0.8809  0.6246  0.9609
+bell_sq                  1944  44752   3262     34   0.3734  0.9828  0.5412  0.9321
+exp_square               1429  46383   1545    635   0.4805  0.6923  0.5673  0.9678
+M                         982  46709   1622    679   0.3771  0.5912  0.4605  0.9664
+m_sq                     2277  44672   2873    170   0.4421  0.9305  0.5994  0.9396
+square                    411  48624    957      0   0.3004  1.0000  0.4621  0.9807
+sq_exp                   1339  46908   1745      0   0.4342  1.0000  0.6055  0.9641
+--------------------------------------------------------------------------------
+Macro Average                                        0.4864  0.8449  0.5839  0.9639
+Weighted Average                                     0.8642  0.7223  0.7522
+
+Legend: TP=True Positive, TN=True Negative, FP=False Positive, FN=False Negative
+        Prec=Precision, Spec=Specificity
+
+Generating Plotly graph...
+
+Visualization saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\cnn_inference_visualization.html
+Log saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\inference_log.txt
+
+============================================================

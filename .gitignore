@@ -42,3 +42,7 @@ Thumbs.db
 *.toc
 *.out
 *.vrb
+
+# Generated dataset
+1D-CNN/data
+data-gen/data
