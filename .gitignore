@@ -44,5 +44,4 @@ Thumbs.db
 *.vrb
 
 # Generated dataset
-1D-CNN/data/synthetic_custom_dataset.csv
-data-gen/data/synthetic_custom_dataset.csv
+*/data/*.csv

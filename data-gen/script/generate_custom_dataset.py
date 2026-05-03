@@ -19,7 +19,7 @@ def create_synthetic_dataset():
     os.makedirs(data_dir, exist_ok=True)
     
     # 1. Evaluate REAL background characteristics
-    filename = os.path.join(root_dir, '..', 'data', '2015_months_DebitDoseA.txt')
+    filename = os.path.join(root_dir, 'data', '2015_months_DebitDoseA.txt')
     try:
         data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
         mois = 3 
@@ -60,9 +60,9 @@ def create_synthetic_dataset():
             f.write(f"{cls_id}: {name}\n")
 
     # 3. Configuration
-    N_synthetic = 100000
+    N_synthetic = 10000000
     CHUNK_SIZE = 50000  # Process this many points at a time to limit RAM usage
-    num_anomalies = np.random.randint(50, 80)
+    num_anomalies = np.random.randint(5000, 8000)
     
     # Pre-compute all anomaly injection points and their shapes
     spacing = N_synthetic // (num_anomalies + 1)

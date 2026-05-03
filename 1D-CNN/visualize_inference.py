@@ -12,7 +12,7 @@ from model import Anomaly1DCNN
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
-    data_path = os.path.join(script_dir, '..', 'data-gen', 'data', 'synthetic_custom_dataset.csv')
+    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'validation_dataset_1.csv')
     model_path = os.path.join(script_dir, 'saved_models', 'best_1d_cnn_pytorch.pth')
     stats_path = os.path.join(script_dir, 'saved_models', 'normalization_stats.json')
     logs_dir = os.path.join(script_dir, 'logs')

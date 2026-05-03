@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 
 # Set the working directory to access the 'data' directory correctly
 script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
-base_dir = os.path.join(script_dir, '..', '..', 'data')
+base_dir = os.path.join(script_dir, '..', 'data')
 
 # Nomes dos meses referenciados nas colunas
 meses_nomes = {0: 'Fevereiro', 1: 'Abril', 2: 'Junho', 3: 'Outubro'}
@@ -13,10 +13,7 @@ meses_nomes = {0: 'Fevereiro', 1: 'Abril', 2: 'Junho', 3: 'Outubro'}
 # Load data files
 data_dict = {}
 file_mappings = {
-    'Gamma': '2015_months_DebitDoseA.txt',
-    'Temperatura': '2015_months_TEMP.txt',
-    'Hygrometria': '2015_months_HYGR.txt',
-    'Pression': '2015_months_PATM.txt'
+    'Gamma': '2015_months_DebitDoseA.txt'
 }
 
 for label, fname in file_mappings.items():

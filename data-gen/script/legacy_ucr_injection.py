@@ -13,7 +13,7 @@ data_dir = os.path.join(script_dir, '..', 'data')
 logs_dir = os.path.join(script_dir, '..', 'logs')
 
 # 1. Evaluate REAL background characteristics
-filename = os.path.join(script_dir, '..', '..', 'data', '2015_months_DebitDoseA.txt')
+filename = os.path.join(script_dir, '..', 'data', '2015_months_DebitDoseA.txt')
 try:
     data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
     mois = 2 
