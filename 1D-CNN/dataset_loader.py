@@ -13,7 +13,7 @@ def load_data(window_size=256, stride=32, test_size=0.2, random_state=42):
     Saves normalization stats for consistent inference.
     """
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
-    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'training_dataset_1.csv')
+    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'training_dataset.csv')
     
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"Dataset not found at {data_path}. Please run generate_custom_dataset.py first.")

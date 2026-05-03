@@ -12,7 +12,7 @@ from model import Anomaly1DCNN
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
-    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'validation_dataset_1.csv')
+    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'validation_dataset.csv')
     model_path = os.path.join(script_dir, 'saved_models', 'best_1d_cnn_pytorch.pth')
     stats_path = os.path.join(script_dir, 'saved_models', 'normalization_stats.json')
     logs_dir = os.path.join(script_dir, 'logs')
@@ -40,7 +40,7 @@ def main():
     log("\nLoading data...")
     df = pd.read_csv(data_path)
     
-    segment_size = min(50000, len(df))
+    segment_size = min(100000, len(df))
     df_segment = df.iloc[:segment_size]
     
     gamma_dose = df_segment['gamma_dose'].values

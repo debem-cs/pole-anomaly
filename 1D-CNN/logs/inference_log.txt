@@ -1,14 +1,14 @@
 ============================================================
 1D-CNN MULTI-CLASS INFERENCE LOG
-Timestamp: 2026-05-02 23:15:25
+Timestamp: 2026-05-03 10:56:46
 ============================================================
 
 Loading data...
 
 --- Dataset ---
-Total dataset size: 100,000 points
-Inference segment: 50,000 points
-True anomaly points in segment: 11,898
+Total dataset size: 10,000,000 points
+Inference segment: 100,000 points
+True anomaly points in segment: 22,208
 Number of classes: 8
 Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'exp_square', 4: 'M', 5: 'm_sq', 6: 'square', 7: 'sq_exp'}
 
@@ -27,39 +27,39 @@ Model: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\saved_models
 Model Parameters: 221,768
 
 Running inference...
-Inference completed in 0:00:05.194251
-Total windows processed: 4,949
-Windows per second: 953
+Inference completed in 0:00:10.343365
+Total windows processed: 9,949
+Windows per second: 962
 
 --- Detection Summary ---
-  Normal Background: 25968 windows detected (avg confidence: 72.66%)
-  bell: 3638 windows detected (avg confidence: 71.55%)
-  bell_sq: 5206 windows detected (avg confidence: 69.04%)
-  exp_square: 2974 windows detected (avg confidence: 60.60%)
-  M: 2604 windows detected (avg confidence: 63.99%)
-  m_sq: 5150 windows detected (avg confidence: 56.46%)
-  square: 1368 windows detected (avg confidence: 57.87%)
-  sq_exp: 3084 windows detected (avg confidence: 67.95%)
+  Normal Background: 56740 windows detected (avg confidence: 75.24%)
+  bell: 10806 windows detected (avg confidence: 70.07%)
+  bell_sq: 2600 windows detected (avg confidence: 63.69%)
+  exp_square: 7832 windows detected (avg confidence: 61.58%)
+  M: 6522 windows detected (avg confidence: 63.40%)
+  m_sq: 3942 windows detected (avg confidence: 64.14%)
+  square: 5572 windows detected (avg confidence: 62.68%)
+  sq_exp: 5978 windows detected (avg confidence: 68.39%)
 
 ================================================================================
 PER-CLASS CONFUSION MATRIX ANALYSIS
 ================================================================================
-Total evaluated windows: 49992
-Overall Accuracy: 0.7223 (36110/49992)
+Total evaluated windows: 99992
+Overall Accuracy: 0.7591 (75899/99992)
 
 Class                      TP     TN     FP     FN     Prec  Recall      F1    Spec
 --------------------------------------------------------------------------------
-Normal Background       25968  11898      0  12126   1.0000  0.6817  0.8107  1.0000
-bell                     1760  46116   1878    238   0.4838  0.8809  0.6246  0.9609
-bell_sq                  1944  44752   3262     34   0.3734  0.9828  0.5412  0.9321
-exp_square               1429  46383   1545    635   0.4805  0.6923  0.5673  0.9678
-M                         982  46709   1622    679   0.3771  0.5912  0.4605  0.9664
-m_sq                     2277  44672   2873    170   0.4421  0.9305  0.5994  0.9396
-square                    411  48624    957      0   0.3004  1.0000  0.4621  0.9807
-sq_exp                   1339  46908   1745      0   0.4342  1.0000  0.6055  0.9641
+Normal Background       56740  22200      0  21052   1.0000  0.7294  0.8435  1.0000
+bell                     5343  89186   5463      0   0.4944  1.0000  0.6617  0.9423
+bell_sq                  1397  97392   1203      0   0.5373  1.0000  0.6990  0.9878
+exp_square               4008  91339   3824    821   0.5117  0.8300  0.6331  0.9598
+M                        2473  93199   4049    271   0.3792  0.9012  0.5338  0.9584
+m_sq                     1153  94979   2789   1071   0.2925  0.5184  0.3740  0.9715
+square                   2569  93542   3003    878   0.4611  0.7453  0.5697  0.9689
+sq_exp                   2216  94014   3762      0   0.3707  1.0000  0.5409  0.9615
 --------------------------------------------------------------------------------
-Macro Average                                        0.4864  0.8449  0.5839  0.9639
-Weighted Average                                     0.8642  0.7223  0.7522
+Macro Average                                        0.5059  0.8405  0.6070  0.9688
+Weighted Average                                     0.8776  0.7591  0.7865
 
 Legend: TP=True Positive, TN=True Negative, FP=False Positive, FN=False Negative
         Prec=Precision, Spec=Specificity
