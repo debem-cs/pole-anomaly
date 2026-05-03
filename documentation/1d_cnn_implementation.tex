@@ -53,7 +53,7 @@ To interpret the model's behavior on streaming data, a visualization and evaluat
 The script produces the following outputs:
 \begin{enumerate}
     \item \textbf{Interactive Visualization:} An interactive dual-axis Plotly graph rendering the simulated gamma noise on the primary axis and distinct, colored probability curves for each anomaly class on the secondary axis. A rolling average (window of 30) is applied to smooth the accumulated probabilities.
-    \item \textbf{Per-Class Confusion Matrix:} The log computes True Positives, True Negatives, False Positives, and False Negatives for each class by comparing the model's \texttt{argmax} predictions against the ground truth labels. From these values, it derives Precision, Recall (Sensitivity), F1-Score, and Specificity, reporting both macro and weighted averages.
+    \item \textbf{Event-Level Evaluation:} Rather than evaluating per-point predictions---which are misleading due to sliding window boundary spillover inflating false positives---the evaluation groups contiguous anomaly points into discrete \textbf{events}. For each event, the model's accumulated probability vectors are averaged and the \texttt{argmax} class is compared against the ground truth label. The log reports a per-event results table, an event-level confusion matrix, and derives per-class Precision, Recall, and F1-Score at the event granularity, along with the overall detection rate and exact classification accuracy.
 \end{enumerate}
 
 \begin{figure}[H]
