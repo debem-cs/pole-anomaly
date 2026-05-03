@@ -23,6 +23,8 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = os.path.join(logs_dir, f'training_log.txt')
     
+    open(log_path, 'w').close()  # Clear log file for a fresh run
+    
     def log(msg):
         print(msg)
         with open(log_path, 'a', encoding='utf-8') as f:

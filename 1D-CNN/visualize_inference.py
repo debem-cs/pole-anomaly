@@ -22,6 +22,8 @@ def main():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = os.path.join(logs_dir, f'inference_log.txt')
     
+    open(log_path, 'w').close()  # Clear log file for a fresh run
+    
     def log(msg):
         print(msg)
         with open(log_path, 'a', encoding='utf-8') as f:
@@ -164,67 +166,126 @@ def main():
             else:
                 log(f"  {name}: 0 windows detected")
         
-        # Per-class confusion matrix metrics
-        log(f"\n{'=' * 80}")
-        log("PER-CLASS CONFUSION MATRIX ANALYSIS")
-        log(f"{'=' * 80}")
-        log(f"Total evaluated windows: {len(valid_indices)}")
-        
-        overall_correct = np.sum(predicted_classes == true_classes)
-        overall_acc = overall_correct / len(valid_indices)
-        log(f"Overall Accuracy: {overall_acc:.4f} ({overall_correct}/{len(valid_indices)})")
-        
-        # Header
-        log(f"\n{'Class':<22} {'TP':>6} {'TN':>6} {'FP':>6} {'FN':>6}  {'Prec':>7} {'Recall':>7} {'F1':>7} {'Spec':>7}")
-        log("-" * 80)
-        
-        # Macro averages accumulator
-        precisions = []
-        recalls = []
-        f1s = []
-        specificities = []
-        
-        for c in range(num_classes):
-            name = class_names.get(c, f"Class {c}")
-            
-            # Binary: is this class or not?
-            tp = int(np.sum((predicted_classes == c) & (true_classes == c)))
-            tn = int(np.sum((predicted_classes != c) & (true_classes != c)))
-            fp = int(np.sum((predicted_classes == c) & (true_classes != c)))
-            fn = int(np.sum((predicted_classes != c) & (true_classes == c)))
-            
-            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-            specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-            
-            precisions.append(precision)
-            recalls.append(recall)
-            f1s.append(f1)
-            specificities.append(specificity)
-            
-            log(f"{name:<22} {tp:>6} {tn:>6} {fp:>6} {fn:>6}  {precision:>7.4f} {recall:>7.4f} {f1:>7.4f} {specificity:>7.4f}")
-        
-        log("-" * 80)
-        
-        macro_prec = np.mean(precisions)
-        macro_rec = np.mean(recalls)
-        macro_f1 = np.mean(f1s)
-        macro_spec = np.mean(specificities)
-        
-        log(f"{'Macro Average':<22} {'':>6} {'':>6} {'':>6} {'':>6}  {macro_prec:>7.4f} {macro_rec:>7.4f} {macro_f1:>7.4f} {macro_spec:>7.4f}")
-        
-        # Weighted averages (weighted by true class support)
-        supports = np.array([np.sum(true_classes == c) for c in range(num_classes)])
-        total_support = supports.sum()
-        if total_support > 0:
-            w_prec = np.sum(np.array(precisions) * supports) / total_support
-            w_rec = np.sum(np.array(recalls) * supports) / total_support
-            w_f1 = np.sum(np.array(f1s) * supports) / total_support
-            log(f"{'Weighted Average':<22} {'':>6} {'':>6} {'':>6} {'':>6}  {w_prec:>7.4f} {w_rec:>7.4f} {w_f1:>7.4f}")
-        
-        log(f"\nLegend: TP=True Positive, TN=True Negative, FP=False Positive, FN=False Negative")
-        log(f"        Prec=Precision, Spec=Specificity")
+    # ============ EVENT-LEVEL EVALUATION ============
+    # Group contiguous anomaly points into discrete events and evaluate per-event.
+    # This avoids the misleading point-level metrics caused by sliding window boundary spillover.
+    log(f"\n{'=' * 80}")
+    log("EVENT-LEVEL EVALUATION")
+    log(f"{'=' * 80}")
+    log("(Each contiguous anomaly region counts as one event)")
+
+    events = []
+    idx = 0
+    while idx < segment_size:
+        label = int(is_anomaly[idx])
+        if label > 0:
+            evt_start = idx
+            while idx < segment_size and int(is_anomaly[idx]) == label:
+                idx += 1
+            events.append((evt_start, idx, label))
+        else:
+            idx += 1
+
+    log(f"Total anomaly events in segment: {len(events)}")
+
+    # Classify each event using the model's averaged accumulated probabilities
+    event_true = []
+    event_pred = []
+    event_conf = []
+    event_details = []
+
+    for evt_start, evt_end, true_class in events:
+        event_probs = probabilities[evt_start:evt_end]
+        valid_mask = ~np.isnan(event_probs[:, 0])
+
+        if valid_mask.sum() == 0:
+            continue
+
+        avg_probs = np.mean(event_probs[valid_mask], axis=0)
+        pred_class = int(np.argmax(avg_probs))
+        confidence = float(avg_probs[pred_class])
+
+        event_true.append(true_class)
+        event_pred.append(pred_class)
+        event_conf.append(confidence)
+        event_details.append({
+            'start': evt_start, 'end': evt_end,
+            'length': evt_end - evt_start,
+            'true': true_class, 'pred': pred_class, 'conf': confidence
+        })
+
+    event_true = np.array(event_true)
+    event_pred = np.array(event_pred)
+    event_conf = np.array(event_conf)
+
+    log(f"Events with valid predictions: {len(event_true)}")
+
+    # Per-event results table
+    log(f"\n{'#':<4} {'True Class':<20} {'Predicted':<20} {'Conf':>7} {'Pts':>7} {''}")
+    log("-" * 66)
+
+    for i, det in enumerate(event_details):
+        true_name = class_names.get(det['true'], f"Class {det['true']}")
+        pred_name = class_names.get(det['pred'], f"Class {det['pred']}")
+        result = "OK" if det['true'] == det['pred'] else "MISS"
+        log(f"{i+1:<4} {true_name:<20} {pred_name:<20} {det['conf']:>6.1%} {det['length']:>7} {result}")
+
+    # Event-level confusion matrix
+    all_evt_classes = sorted(set(event_true.tolist() + event_pred.tolist()))
+
+    log(f"\n--- Event-Level Confusion Matrix (rows=true, cols=predicted) ---")
+    header = f"{'':>16}"
+    for c in all_evt_classes:
+        name = class_names.get(c, f"Cls{c}")
+        header += f" {name[:10]:>10}"
+    log(header)
+    log("-" * (16 + 11 * len(all_evt_classes)))
+
+    for true_c in sorted(set(event_true)):
+        true_name = class_names.get(true_c, f"Class {true_c}")
+        row = f"{true_name[:16]:>16}"
+        for pred_c in all_evt_classes:
+            count = int(np.sum((event_true == true_c) & (event_pred == pred_c)))
+            row += f" {count:>10}"
+        log(row)
+
+    # Summary
+    correct = int(np.sum(event_true == event_pred))
+    detected_any = int(np.sum(event_pred > 0))
+    total_events = len(event_true)
+
+    log(f"\n--- Event-Level Summary ---")
+    log(f"Exact Classification: {correct}/{total_events} ({correct/total_events:.1%})")
+    log(f"Detection Rate (any anomaly): {detected_any}/{total_events} ({detected_any/total_events:.1%})")
+    log(f"Mean Confidence: {np.mean(event_conf):.1%}")
+
+    # Per-class metrics at event level
+    log(f"\n{'Class':<20} {'Support':>8} {'Prec':>8} {'Recall':>8} {'F1':>8}")
+    log("-" * 55)
+
+    e_precs, e_recs, e_f1s = [], [], []
+    for c in sorted(set(event_true.tolist() + event_pred.tolist())):
+        if c == 0:
+            continue
+        name = class_names.get(c, f"Class {c}")
+        tp = int(np.sum((event_pred == c) & (event_true == c)))
+        fp = int(np.sum((event_pred == c) & (event_true != c)))
+        fn = int(np.sum((event_pred != c) & (event_true == c)))
+        support = int(np.sum(event_true == c))
+
+        prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+
+        e_precs.append(prec)
+        e_recs.append(rec)
+        e_f1s.append(f1)
+
+        log(f"{name:<20} {support:>8} {prec:>8.4f} {rec:>8.4f} {f1:>8.4f}")
+
+    log("-" * 55)
+    if e_precs:
+        log(f"{'Macro Average':<20} {'':>8} {np.mean(e_precs):>8.4f} {np.mean(e_recs):>8.4f} {np.mean(e_f1s):>8.4f}")
     
     # 5. Visualization
     log(f"\nGenerating Plotly graph...")

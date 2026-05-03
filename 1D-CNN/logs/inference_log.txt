@@ -70,3 +70,158 @@ Visualization saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-
 Log saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\inference_log.txt
 
 ============================================================
+============================================================
+1D-CNN MULTI-CLASS INFERENCE LOG
+Timestamp: 2026-05-03 11:23:06
+============================================================
+
+Loading data...
+
+--- Dataset ---
+Total dataset size: 10,000,000 points
+Inference segment: 100,000 points
+True anomaly points in segment: 22,208
+Number of classes: 8
+Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'exp_square', 4: 'M', 5: 'm_sq', 6: 'square', 7: 'sq_exp'}
+
+Loaded training normalization stats: mean=103.0083, std=8.8425
+
+--- Environment ---
+PyTorch Version: 2.10.0+cpu
+Device: cpu
+
+--- Inference Parameters ---
+Window Size: 512
+Stride: 10
+Smoothing Window: 30
+Model: C:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\saved_models\best_1d_cnn_pytorch.pth
+Model Parameters: 221,768
+
+Running inference...
+Inference completed in 0:00:05.667977
+Total windows processed: 9,949
+Windows per second: 1755
+
+--- Detection Summary ---
+  Normal Background: 56746 windows detected (avg confidence: 75.24%)
+  bell: 10814 windows detected (avg confidence: 70.06%)
+  bell_sq: 2600 windows detected (avg confidence: 63.68%)
+  exp_square: 7822 windows detected (avg confidence: 61.61%)
+  M: 6522 windows detected (avg confidence: 63.40%)
+  m_sq: 3936 windows detected (avg confidence: 64.14%)
+  square: 5572 windows detected (avg confidence: 62.68%)
+  sq_exp: 5980 windows detected (avg confidence: 68.41%)
+
+================================================================================
+EVENT-LEVEL EVALUATION
+================================================================================
+(Each contiguous anomaly region counts as one event)
+Total anomaly events in segment: 69
+Events with valid predictions: 69
+
+#    True Class           Predicted               Conf     Pts 
+------------------------------------------------------------------
+1    exp_square           m_sq                  35.2%     218 MISS
+2    m_sq                 m_sq                  90.2%     215 OK
+3    M                    M                     81.5%     319 OK
+4    M                    M                     91.6%     227 OK
+5    square               square                75.1%     259 OK
+6    exp_square           exp_square            78.7%     334 OK
+7    bell                 bell                  78.8%     426 OK
+8    m_sq                 m_sq                  53.8%     276 OK
+9    square               sq_exp                75.1%     367 MISS
+10   sq_exp               sq_exp                73.1%     383 OK
+11   M                    bell                  55.9%     462 MISS
+12   m_sq                 M                     62.1%     352 MISS
+13   bell_sq              bell_sq               78.9%     393 OK
+14   bell                 bell                  84.0%     360 OK
+15   bell                 bell                  96.0%     450 OK
+16   m_sq                 M                     48.0%     394 MISS
+17   bell_sq              bell_sq               65.9%     350 OK
+18   square               square                62.1%     321 OK
+19   exp_square           exp_square            80.1%     178 OK
+20   square               sq_exp                92.6%     230 MISS
+21   exp_square           exp_square            82.9%     404 OK
+22   square               square                78.2%     208 OK
+23   bell_sq              bell_sq               72.3%     402 OK
+24   square               exp_square            44.2%     259 MISS
+25   exp_square           square                67.3%     163 MISS
+26   sq_exp               sq_exp                91.6%     331 OK
+27   bell                 bell                  71.4%     238 OK
+28   m_sq                 m_sq                  89.0%     279 OK
+29   sq_exp               sq_exp                88.5%     448 OK
+30   square               square                85.8%     341 OK
+31   exp_square           exp_square            52.3%     251 OK
+32   exp_square           exp_square            67.0%     206 OK
+33   bell                 bell                  50.0%     214 OK
+34   square               square                68.4%     216 OK
+35   M                    M                     88.4%     374 OK
+36   M                    M                     81.9%     230 OK
+37   bell                 bell                  95.9%     480 OK
+38   exp_square           exp_square            69.9%     317 OK
+39   sq_exp               sq_exp                78.1%     284 OK
+40   exp_square           exp_square            76.4%     364 OK
+41   bell                 bell                  96.8%     456 OK
+42   bell_sq              bell_sq               80.8%     252 OK
+43   sq_exp               sq_exp                83.3%     419 OK
+44   exp_square           exp_square            84.1%     362 OK
+45   M                    M                     80.0%     306 OK
+46   m_sq                 m_sq                  90.9%     223 OK
+47   square               square                59.1%     303 OK
+48   m_sq                 m_sq                  84.5%     271 OK
+49   exp_square           exp_square            81.3%     280 OK
+50   exp_square           exp_square            51.0%     398 OK
+51   bell                 bell                  80.5%     271 OK
+52   m_sq                 sq_exp                44.8%     214 MISS
+53   bell                 bell                  83.4%     386 OK
+54   bell                 bell                  84.2%     354 OK
+55   exp_square           exp_square            76.0%     373 OK
+56   exp_square           m_sq                  62.9%     369 MISS
+57   sq_exp               sq_exp                87.2%     351 OK
+58   bell                 bell                  85.3%     387 OK
+59   exp_square           exp_square            49.9%     358 OK
+60   exp_square           exp_square            80.7%     254 OK
+61   square               square                66.7%     418 OK
+62   M                    M                     75.9%     375 OK
+63   bell                 bell                  91.8%     474 OK
+64   bell                 bell                  46.1%     239 OK
+65   square               square                86.6%     302 OK
+66   bell                 bell                  82.2%     307 OK
+67   bell                 bell                  77.6%     301 OK
+68   M                    M                     84.1%     451 OK
+69   square               square                72.6%     231 OK
+
+--- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
+                       bell    bell_sq exp_square          M       m_sq     square     sq_exp
+---------------------------------------------------------------------------------------------
+            bell         15          0          0          0          0          0          0
+         bell_sq          0          4          0          0          0          0          0
+      exp_square          0          0         13          0          2          1          0
+               M          1          0          0          7          0          0          0
+            m_sq          0          0          0          2          5          0          1
+          square          0          0          1          0          0          9          2
+          sq_exp          0          0          0          0          0          0          6
+
+--- Event-Level Summary ---
+Exact Classification: 59/69 (85.5%)
+Detection Rate (any anomaly): 69/69 (100.0%)
+Mean Confidence: 74.9%
+
+Class                 Support     Prec   Recall       F1
+-------------------------------------------------------
+bell                       15   0.9375   1.0000   0.9677
+bell_sq                     4   1.0000   1.0000   1.0000
+exp_square                 16   0.9286   0.8125   0.8667
+M                           8   0.7778   0.8750   0.8235
+m_sq                        8   0.7143   0.6250   0.6667
+square                     12   0.9000   0.7500   0.8182
+sq_exp                      6   0.6667   1.0000   0.8000
+-------------------------------------------------------
+Macro Average                   0.8464   0.8661   0.8490
+
+Generating Plotly graph...
+
+Visualization saved to C:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\cnn_inference_visualization.html
+Log saved to C:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\inference_log.txt
+
+============================================================
