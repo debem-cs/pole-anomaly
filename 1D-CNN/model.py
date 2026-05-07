@@ -37,21 +37,14 @@ class Anomaly1DCNN(nn.Module):
             nn.MaxPool1d(kernel_size=2)
         )
         
-        # Block 5
-        self.block5 = nn.Sequential(
-            nn.Conv1d(in_channels=128, out_channels=256, kernel_size=3, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2)
-        )
-        
-        # Global Average Pooling
-        self.global_pool = nn.AdaptiveAvgPool1d(1)
+        # Regional Pooling - preserves 4 temporal bins to maintain shape topography
+        self.global_pool = nn.AdaptiveAvgPool1d(4)
         
         # Classifier with hidden layer and dropout
         self.classifier = nn.Sequential(
+            nn.Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(256, 64),
+            nn.Linear(128 * 4, 64),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(64, num_classes)
@@ -62,8 +55,6 @@ class Anomaly1DCNN(nn.Module):
         x = self.block2(x)
         x = self.block3(x)
         x = self.block4(x)
-        x = self.block5(x)
         x = self.global_pool(x)
-        x = x.squeeze(-1) # shape: (batch, 256)
         x = self.classifier(x)
         return x

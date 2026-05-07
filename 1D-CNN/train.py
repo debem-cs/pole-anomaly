@@ -11,7 +11,7 @@ from model import Anomaly1DCNN
 def main():
     window_size = 512
     batch_size = 64
-    epochs = 50
+    epochs = 150
     learning_rate = 0.001
     patience = 10
     
