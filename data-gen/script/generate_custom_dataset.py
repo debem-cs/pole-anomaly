@@ -78,9 +78,9 @@ def create_synthetic_dataset():
             f.write(f"{cls_id}: {name}\n")
 
     # 3. Configuration
-    N_synthetic = 1000000
+    N_synthetic = 10000000
     CHUNK_SIZE = 50000  # Process this many points at a time to limit RAM usage
-    num_anomalies = np.random.randint(500, 800)
+    num_anomalies = np.random.randint(5000, 8000)
     
     # Pre-compute all anomaly injection points and their shapes
     spacing = N_synthetic // (num_anomalies + 1)
@@ -116,8 +116,8 @@ def create_synthetic_dataset():
     # 4. Write CSV in chunks
     output_csv_path = os.path.join(data_dir, 'synthetic_custom_dataset.csv')
     
-    # Collect a small preview segment for plotting (first 50k points max)
-    plot_limit = min(50000, N_synthetic)
+    # Collect a small preview segment for plotting (first 100k points max)
+    plot_limit = min(100000, N_synthetic)
     plot_time = []
     plot_gamma = []
     plot_anomaly_vals = []

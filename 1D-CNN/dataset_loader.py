@@ -13,7 +13,7 @@ def load_data(window_size=256, stride=32, test_size=0.2, random_state=42):
     Saves normalization stats for consistent inference.
     """
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
-    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'training_dataset.csv')
+    data_path = os.path.join(script_dir, '..', '1D-CNN', 'data', 'training_dataset_2.csv')
     
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"Dataset not found at {data_path}. Please run generate_custom_dataset.py first.")
@@ -42,19 +42,25 @@ def load_data(window_size=256, stride=32, test_size=0.2, random_state=42):
     print(f"Train anomaly windows: {np.sum(y_train > 0)} | Train normal windows: {np.sum(y_train == 0)}")
     print(f"Test anomaly windows: {np.sum(y_test > 0)} | Test normal windows: {np.sum(y_test == 0)}")
     
-    # Normalize using global mean and std from the training set to preserve time-series shapes
-    train_mean = float(np.mean(X_train_windows))
-    train_std = float(np.std(X_train_windows))
+    # Normalize by centering EACH window to 0, but using global std to preserve relative amplitudes
+    train_window_means = np.mean(X_train_windows, axis=1, keepdims=True)
+    X_train_centered = X_train_windows - train_window_means
+    
+    test_window_means = np.mean(X_test_windows, axis=1, keepdims=True)
+    X_test_centered = X_test_windows - test_window_means
+    
+    # Calculate global std on the centered training windows
+    train_std = float(np.std(X_train_centered))
     
     # Save normalization stats for inference
     stats_path = os.path.join(script_dir, 'saved_models', 'normalization_stats.json')
     os.makedirs(os.path.dirname(stats_path), exist_ok=True)
     with open(stats_path, 'w') as f:
-        json.dump({'mean': train_mean, 'std': train_std}, f)
-    print(f"Normalization stats saved: mean={train_mean:.4f}, std={train_std:.4f}")
+        json.dump({'std': train_std}, f)
+    print(f"Normalization stats saved: per-window centering, global std={train_std:.4f}")
     
-    X_train_scaled = (X_train_windows - train_mean) / train_std
-    X_test_scaled = (X_test_windows - train_mean) / train_std
+    X_train_scaled = X_train_centered / train_std
+    X_test_scaled = X_test_centered / train_std
     
     # Reshape to (batch, channels, sequence) for PyTorch 1D-CNN
     X_train_final = X_train_scaled.reshape(-1, 1, window_size)

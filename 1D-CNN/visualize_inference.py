@@ -76,13 +76,11 @@ def main():
     if os.path.exists(stats_path):
         with open(stats_path, 'r') as f:
             stats = json.load(f)
-        train_mean = stats['mean']
         train_std = stats['std']
-        log(f"\nLoaded training normalization stats: mean={train_mean:.4f}, std={train_std:.4f}")
+        log(f"\nLoaded training normalization stats: per-window centering, std={train_std:.4f}")
     else:
         log("\n[WARNING] normalization_stats.json not found! Falling back to segment-level stats.")
         log("          This WILL cause a performance mismatch. Please retrain the model first.")
-        train_mean = float(np.mean(gamma_dose))
         train_std = float(np.std(gamma_dose))
     
     # 3. Setup Model
@@ -124,8 +122,9 @@ def main():
         end = start + window_size
         window_data = gamma_dose[start:end]
         
-        # Use the same normalization as training
-        window_scaled = (window_data - train_mean) / train_std
+        # Use per-window centering + global std normalization (same as training)
+        window_mean = np.mean(window_data)
+        window_scaled = (window_data - window_mean) / train_std
         x_tensor = torch.tensor(window_scaled, dtype=torch.float32).view(1, 1, window_size).to(device)
         
         with torch.no_grad():
