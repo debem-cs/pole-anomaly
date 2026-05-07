@@ -25,18 +25,36 @@ def create_synthetic_dataset():
         mois = 3 
         real_background = data_gamma[:, mois]
         
-        # Clean boundaries
+        # Clean boundaries and remove NaNs
         Nh = 400
-        N = len(real_background)
-        real_background = real_background[Nh:N-Nh]
+        real_background = real_background[Nh:-Nh]
+        real_background = real_background[~np.isnan(real_background)]
         
-        mean_noise = np.nanmean(real_background)
-        std_noise = np.nanstd(real_background)
-        print(f"Sensor noise characteristics -> Mean: {mean_noise:.2f}, Standard Deviation: {std_noise:.2f}")
+        global_mean = np.mean(real_background)
+        
+        # Isolate baseline using a moving average
+        window_size = 480
+        kernel = np.ones(window_size) / window_size
+        baseline = np.convolve(real_background, kernel, mode='valid')
+        
+        # Calculate high-frequency noise from residuals
+        hf_residual = real_background[window_size//2 : -window_size//2 + 1] - baseline
+        std_noise = np.std(hf_residual)
+        
+        # Baseline OU parameters
+        baseline_diffs = np.diff(baseline)
+        sigma = np.std(baseline_diffs)
+        # Empirical low reversion rate from analysis
+        theta = 0.000004 
+        
+        print(f"Sensor noise characteristics -> Global Mean: {global_mean:.2f}, HF Noise Std: {std_noise:.2f}")
+        print(f"Baseline characteristics -> Theta: {theta:.6f}, Sigma: {sigma:.6f}")
     except FileNotFoundError:
         print(f"Error: Could not find {filename}. Using default noise estimates.")
-        mean_noise = 100.0
-        std_noise = 4.5
+        global_mean = 100.0
+        std_noise = 2.55
+        theta = 0.000004
+        sigma = 0.010
 
     # 2. Load Custom Templates
     anomalies_dir = os.path.join(root_dir, 'anomalies')
@@ -60,9 +78,9 @@ def create_synthetic_dataset():
             f.write(f"{cls_id}: {name}\n")
 
     # 3. Configuration
-    N_synthetic = 10000000
+    N_synthetic = 1000000
     CHUNK_SIZE = 50000  # Process this many points at a time to limit RAM usage
-    num_anomalies = np.random.randint(5000, 8000)
+    num_anomalies = np.random.randint(500, 800)
     
     # Pre-compute all anomaly injection points and their shapes
     spacing = N_synthetic // (num_anomalies + 1)
@@ -105,19 +123,32 @@ def create_synthetic_dataset():
     plot_anomaly_vals = []
     plot_labels = []
     plot_classes_text = []
+    plot_baseline = []
     
     with open(output_csv_path, 'w') as csv_file:
         csv_file.write("time_step,gamma_dose,is_anomaly\n")
         
         num_chunks = (N_synthetic + CHUNK_SIZE - 1) // CHUNK_SIZE
         
+        current_baseline_val = global_mean
+        
         for chunk_idx in range(num_chunks):
             chunk_start = chunk_idx * CHUNK_SIZE
             chunk_end = min(chunk_start + CHUNK_SIZE, N_synthetic)
             chunk_len = chunk_end - chunk_start
             
-            # Generate noise for this chunk only
-            chunk_background = np.random.normal(loc=mean_noise, scale=std_noise, size=chunk_len)
+            # Generate wandering baseline using OU process
+            chunk_baseline = np.zeros(chunk_len, dtype=float)
+            noise_steps = np.random.normal(scale=sigma, size=chunk_len)
+            
+            val = current_baseline_val
+            for i in range(chunk_len):
+                val = val + theta * (global_mean - val) + noise_steps[i]
+                chunk_baseline[i] = val
+            current_baseline_val = val
+            
+            # Generate high-frequency noise around the wandering baseline
+            chunk_background = np.random.normal(loc=chunk_baseline, scale=std_noise)
             chunk_background = np.clip(chunk_background, 0, None)
             chunk_pure_anomalies = np.zeros(chunk_len, dtype=float)
             chunk_labels = np.zeros(chunk_len, dtype=int)
@@ -162,6 +193,7 @@ def create_synthetic_dataset():
                 plot_anomaly_vals.extend(chunk_pure_anomalies[:plot_len].tolist())
                 plot_labels.extend(chunk_labels[:plot_len].tolist())
                 plot_classes_text.extend(chunk_classes_text[:plot_len])
+                plot_baseline.extend(chunk_baseline[:plot_len].tolist())
             
             print(f"  Chunk {chunk_idx + 1}/{num_chunks} written ({chunk_start:,} - {chunk_end:,})")
     
@@ -174,6 +206,7 @@ def create_synthetic_dataset():
     plot_gamma = np.array(plot_gamma)
     plot_anomaly_vals = np.array(plot_anomaly_vals)
     plot_labels = np.array(plot_labels)
+    plot_baseline = np.array(plot_baseline)
     
     fig = go.Figure()
 
@@ -201,10 +234,19 @@ def create_synthetic_dataset():
 
     fig.add_trace(go.Scatter(
         x=plot_time, 
-        y=plot_anomaly_vals + mean_noise, 
+        y=plot_anomaly_vals + global_mean, 
         mode='lines', 
         name='Pure Anomaly Shapes (No Noise)',
         line=dict(color='orange', width=2),
+        hoverinfo="skip"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=plot_time, 
+        y=plot_baseline, 
+        mode='lines', 
+        name='Wandering Baseline',
+        line=dict(color='yellow', width=2, dash='dash'),
         hoverinfo="skip"
     ))
 
