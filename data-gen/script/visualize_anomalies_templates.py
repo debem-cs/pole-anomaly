@@ -49,10 +49,15 @@ def visualize_anomalies():
                 t_seg = np.linspace(t0, t1, seg_steps)
                 
                 mode = row['interp'] if 'interp' in df.columns else 'linear'
-                if mode == 'exp' and t1 > t0:
+                if (mode == 'exp' or mode == 'exp_up') and t1 > t0:
                     x_norm = (t_seg - t0) / (t1 - t0)
                     alpha = 3.0
                     y_norm = (np.exp(alpha * x_norm) - 1) / (np.exp(alpha) - 1)
+                    v_seg = v0 + (v1 - v0) * y_norm
+                elif mode == 'exp_down' and t1 > t0:
+                    x_norm = (t_seg - t0) / (t1 - t0)
+                    alpha = 3.0
+                    y_norm = 1.0 - (np.exp(alpha * (1.0 - x_norm)) - 1) / (np.exp(alpha) - 1)
                     v_seg = v0 + (v1 - v0) * y_norm
                 elif mode == 'bell' and t1 > t0:
                     x_norm = (t_seg - t0) / (t1 - t0)

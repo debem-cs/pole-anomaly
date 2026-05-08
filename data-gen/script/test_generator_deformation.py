@@ -33,8 +33,8 @@ def test_anomaly_deformation():
         for j in range(6):
             std_noise = 4.36
             target_amplitude = std_noise * np.random.uniform(3.0, 7.6)
-            target_period = np.random.randint(200, 500)
-            variance_level = np.random.uniform(0.02, 0.08)
+            target_period = np.random.randint(80, 400)
+            variance_level = np.random.uniform(0.02, 0.06)
 
             t, v = generate_anomaly(df, amplitude=target_amplitude, period=target_period, variance=variance_level)
             fig.add_trace(go.Scatter(

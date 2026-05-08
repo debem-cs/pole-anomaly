@@ -71,10 +71,15 @@ def generate_anomaly(template_df, amplitude, period, variance, sample_rate=1.0):
                 
                 if t1 == t0:
                     v_discrete[k] = v1
-                elif mode == 'exp':
+                elif mode == 'exp' or mode == 'exp_up':
                     x_norm = (t_val - t0) / (t1 - t0)
                     alpha = 3.0
                     y_norm = (np.exp(alpha * x_norm) - 1) / (np.exp(alpha) - 1)
+                    v_discrete[k] = v0 + (v1 - v0) * y_norm
+                elif mode == 'exp_down':
+                    x_norm = (t_val - t0) / (t1 - t0)
+                    alpha = 3.0
+                    y_norm = 1.0 - (np.exp(alpha * (1.0 - x_norm)) - 1) / (np.exp(alpha) - 1)
                     v_discrete[k] = v0 + (v1 - v0) * y_norm
                 elif mode == 'bell':
                     x_norm = (t_val - t0) / (t1 - t0)
