@@ -1,6 +1,6 @@
 ============================================================
 1D-CNN MULTI-CLASS INFERENCE LOG
-Timestamp: 2026-05-08 11:16:03
+Timestamp: 2026-05-08 11:33:32
 ============================================================
 
 Loading data...
@@ -8,7 +8,7 @@ Loading data...
 --- Dataset ---
 Total dataset size: 100,000 points
 Inference segment: 100,000 points
-True anomaly points in segment: 23,122
+True anomaly points in segment: 23,891
 Number of classes: 8
 Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'exp_square', 4: 'M', 5: 'm_sq', 6: 'square', 7: 'sq_exp'}
 
@@ -27,129 +27,136 @@ Model: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\saved_models
 Model Parameters: 270,920
 
 Running inference...
-Inference completed in 0:00:15.126993
+Inference completed in 0:00:17.051145
 Total windows processed: 9,949
-Windows per second: 658
+Windows per second: 583
 
 --- Detection Summary ---
-  Normal Background: 55022 windows detected (avg confidence: 74.38%)
-  bell: 5564 windows detected (avg confidence: 75.52%)
-  bell_sq: 5432 windows detected (avg confidence: 61.80%)
-  exp_square: 8678 windows detected (avg confidence: 63.58%)
-  M: 6650 windows detected (avg confidence: 67.73%)
-  m_sq: 3720 windows detected (avg confidence: 67.98%)
-  square: 7172 windows detected (avg confidence: 59.33%)
-  sq_exp: 7754 windows detected (avg confidence: 71.12%)
+  Normal Background: 51480 windows detected (avg confidence: 71.05%)
+  bell: 5232 windows detected (avg confidence: 66.71%)
+  bell_sq: 5574 windows detected (avg confidence: 69.36%)
+  exp_square: 5690 windows detected (avg confidence: 59.70%)
+  M: 8178 windows detected (avg confidence: 72.78%)
+  m_sq: 10000 windows detected (avg confidence: 68.56%)
+  square: 6796 windows detected (avg confidence: 60.61%)
+  sq_exp: 7042 windows detected (avg confidence: 68.76%)
 
 ================================================================================
 EVENT-LEVEL EVALUATION
 ================================================================================
 (Each contiguous anomaly region counts as one event)
-Total anomaly events in segment: 72
-Events with valid predictions: 72
+Total anomaly events in segment: 79
+Events with valid predictions: 79
 
 #    True Class           Predicted               Conf     Pts 
 ------------------------------------------------------------------
-1    square               m_sq                  52.4%     302 MISS
-2    m_sq                 m_sq                  90.8%     277 OK
-3    exp_square           exp_square            66.9%     271 OK
-4    bell_sq              bell_sq               83.2%     393 OK
-5    exp_square           exp_square            76.0%     480 OK
-6    exp_square           exp_square            82.5%     307 OK
-7    square               exp_square            56.7%     153 MISS
-8    sq_exp               sq_exp                87.3%     399 OK
-9    exp_square           exp_square            51.7%     298 OK
-10   bell                 bell                  77.7%     335 OK
-11   bell_sq              bell_sq               65.3%     380 OK
-12   bell_sq              bell_sq               84.1%     306 OK
-13   square               square                62.7%     127 OK
-14   exp_square           exp_square            75.9%     361 OK
-15   square               square                84.4%     222 OK
-16   bell_sq              bell_sq               73.6%     395 OK
-17   bell_sq              bell_sq               74.4%     361 OK
-18   square               square                72.7%     216 OK
-19   square               square                76.0%     347 OK
-20   square               square                50.9%     389 OK
-21   M                    M                     85.2%     484 OK
-22   M                    M                     90.8%     483 OK
-23   bell                 bell                  92.9%     443 OK
-24   bell_sq              bell_sq               67.5%     378 OK
-25   bell                 bell                  85.4%     324 OK
-26   square               square                76.2%     269 OK
-27   square               square                57.6%     372 OK
-28   m_sq                 m_sq                  87.9%     304 OK
-29   M                    M                     86.7%     375 OK
-30   square               square                76.4%     271 OK
-31   m_sq                 square                42.5%     270 MISS
-32   exp_square           exp_square            77.4%     217 OK
-33   exp_square           exp_square            86.9%     330 OK
-34   bell                 M                     42.3%     198 MISS
-35   bell_sq              bell_sq               88.2%     226 OK
-36   square               square                37.1%     363 OK
-37   sq_exp               sq_exp                94.5%     238 OK
-38   bell                 bell                  94.5%     407 OK
-39   M                    M                     90.8%     294 OK
-40   m_sq                 m_sq                  85.3%     272 OK
-41   M                    M                     52.0%     457 OK
-42   sq_exp               sq_exp                86.2%     354 OK
-43   sq_exp               sq_exp                91.3%     352 OK
-44   M                    M                     84.3%     254 OK
-45   bell_sq              bell_sq               63.0%     339 OK
-46   exp_square           exp_square            84.6%     339 OK
-47   m_sq                 m_sq                  81.7%     312 OK
-48   M                    M                     78.1%     397 OK
-49   exp_square           exp_square            53.2%     237 OK
-50   sq_exp               sq_exp                83.7%     498 OK
-51   exp_square           exp_square            83.1%     235 OK
-52   bell                 bell                  80.4%     253 OK
-53   m_sq                 m_sq                  87.4%     321 OK
-54   sq_exp               sq_exp                76.0%     328 OK
-55   square               square                56.7%     183 OK
-56   bell                 bell                  95.3%     434 OK
-57   square               square                76.4%     324 OK
-58   bell                 bell                  94.5%     359 OK
-59   sq_exp               sq_exp                91.5%     305 OK
-60   bell                 bell                  83.8%     367 OK
-61   exp_square           exp_square            81.1%     203 OK
-62   sq_exp               sq_exp                70.9%     245 OK
-63   bell_sq              M                     90.3%     314 MISS
-64   exp_square           exp_square            52.4%     368 OK
-65   square               square                66.4%     256 OK
-66   square               square                86.1%     233 OK
-67   exp_square           exp_square            85.3%     315 OK
-68   sq_exp               sq_exp                74.8%     373 OK
-69   M                    M                     73.2%     341 OK
-70   exp_square           exp_square            77.8%     362 OK
-71   sq_exp               sq_exp                75.9%     283 OK
-72   square               sq_exp                88.0%     344 MISS
+1    m_sq                 m_sq                  70.2%     451 OK
+2    exp_square           exp_square            68.7%     347 OK
+3    square               exp_square            43.9%     420 MISS
+4    bell                 bell                  57.9%     297 OK
+5    square               square                77.9%     190 OK
+6    sq_exp               sq_exp                84.0%     222 OK
+7    square               square                78.0%     183 OK
+8    sq_exp               sq_exp                80.2%     390 OK
+9    m_sq                 m_sq                  86.7%     255 OK
+10   exp_square           exp_square            76.2%     174 OK
+11   M                    M                     95.2%     441 OK
+12   M                    bell_sq               50.8%     233 MISS
+13   sq_exp               sq_exp                89.8%     200 OK
+14   bell_sq              bell_sq               87.5%     229 OK
+15   m_sq                 m_sq                  80.5%     309 OK
+16   bell                 bell                  89.3%     313 OK
+17   M                    M                     89.2%     251 OK
+18   sq_exp               sq_exp                63.0%     249 OK
+19   square               square                75.2%     241 OK
+20   bell_sq              bell_sq               90.9%     241 OK
+21   square               square                75.7%     294 OK
+22   sq_exp               sq_exp                82.4%     313 OK
+23   M                    M                     87.6%     288 OK
+24   square               square                68.9%     442 OK
+25   bell                 bell                  85.8%     414 OK
+26   M                    M                     86.3%     335 OK
+27   m_sq                 m_sq                  90.6%     199 OK
+28   m_sq                 m_sq                  92.8%     227 OK
+29   sq_exp               sq_exp                88.3%     239 OK
+30   bell                 bell                  83.8%     290 OK
+31   m_sq                 m_sq                  81.6%     345 OK
+32   square               square                73.9%     475 OK
+33   exp_square           exp_square            79.5%     346 OK
+34   sq_exp               sq_exp                93.4%     387 OK
+35   M                    M                     90.1%     210 OK
+36   bell                 bell                  82.3%     289 OK
+37   square               square                49.3%     318 OK
+38   square               square                81.6%     235 OK
+39   bell_sq              bell_sq               83.0%     388 OK
+40   exp_square           exp_square            76.0%     286 OK
+41   m_sq                 m_sq                  93.3%     215 OK
+42   exp_square           exp_square            71.4%     330 OK
+43   square               square                72.5%     242 OK
+44   m_sq                 M                     53.9%     280 MISS
+45   exp_square           exp_square            74.8%     396 OK
+46   exp_square           exp_square            76.5%     304 OK
+47   m_sq                 m_sq                  82.3%     379 OK
+48   m_sq                 m_sq                  92.2%     245 OK
+49   M                    M                     89.3%     447 OK
+50   bell                 bell                  64.3%     479 OK
+51   sq_exp               sq_exp                85.1%     181 OK
+52   square               square                45.1%     298 OK
+53   m_sq                 m_sq                  69.9%     296 OK
+54   bell_sq              bell_sq               74.3%     393 OK
+55   M                    m_sq                  96.4%     290 MISS
+56   bell                 bell                  81.0%     215 OK
+57   square               square                60.3%     487 OK
+58   bell_sq              bell_sq               90.8%     355 OK
+59   m_sq                 m_sq                  91.9%     291 OK
+60   bell_sq              bell_sq               91.1%     179 OK
+61   exp_square           exp_square            69.1%     300 OK
+62   M                    M                     92.1%     373 OK
+63   exp_square           exp_square            49.2%     259 OK
+64   M                    M                     95.5%     289 OK
+65   sq_exp               sq_exp                58.8%     346 OK
+66   m_sq                 m_sq                  88.6%     204 OK
+67   M                    M                     92.4%     303 OK
+68   m_sq                 m_sq                  51.7%     259 OK
+69   bell                 bell                  78.1%     354 OK
+70   m_sq                 m_sq                  94.6%     194 OK
+71   bell_sq              bell_sq               84.1%     336 OK
+72   sq_exp               sq_exp                83.6%     346 OK
+73   m_sq                 m_sq                  71.0%     296 OK
+74   M                    M                     91.1%     319 OK
+75   exp_square           m_sq                  26.7%     244 MISS
+76   bell_sq              bell_sq               87.0%     307 OK
+77   sq_exp               sq_exp                76.2%     471 OK
+78   M                    M                     85.8%     202 OK
+79   square               square                72.8%     231 OK
 
 --- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
                        bell    bell_sq exp_square          M       m_sq     square     sq_exp
 ---------------------------------------------------------------------------------------------
-            bell          8          0          0          1          0          0          0
-         bell_sq          0          8          0          1          0          0          0
-      exp_square          0          0         14          0          0          0          0
-               M          0          0          0          8          0          0          0
-            m_sq          0          0          0          0          5          1          0
-          square          0          0          1          0          1         13          1
-          sq_exp          0          0          0          0          0          0         10
+            bell          8          0          0          0          0          0          0
+         bell_sq          0          8          0          0          0          0          0
+      exp_square          0          0          9          0          1          0          0
+               M          0          1          0         11          1          0          0
+            m_sq          0          0          0          1         15          0          0
+          square          0          0          1          0          0         12          0
+          sq_exp          0          0          0          0          0          0         11
 
 --- Event-Level Summary ---
-Exact Classification: 66/72 (91.7%)
-Detection Rate (any anomaly): 72/72 (100.0%)
-Mean Confidence: 76.3%
+Exact Classification: 74/79 (93.7%)
+Detection Rate (any anomaly): 79/79 (100.0%)
+Mean Confidence: 78.1%
 
 Class                 Support     Prec   Recall       F1
 -------------------------------------------------------
-bell                        9   1.0000   0.8889   0.9412
-bell_sq                     9   1.0000   0.8889   0.9412
-exp_square                 14   0.9333   1.0000   0.9655
-M                           8   0.8000   1.0000   0.8889
-m_sq                        6   0.8333   0.8333   0.8333
-square                     16   0.9286   0.8125   0.8667
-sq_exp                     10   0.9091   1.0000   0.9524
+bell                        8   1.0000   1.0000   1.0000
+bell_sq                     8   0.8889   1.0000   0.9412
+exp_square                 10   0.9000   0.9000   0.9000
+M                          13   0.9167   0.8462   0.8800
+m_sq                       16   0.8824   0.9375   0.9091
+square                     13   1.0000   0.9231   0.9600
+sq_exp                     11   1.0000   1.0000   1.0000
 -------------------------------------------------------
-Macro Average                   0.9149   0.9177   0.9127
+Macro Average                   0.9411   0.9438   0.9415
 
 Generating Plotly graph...
 
