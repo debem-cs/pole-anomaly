@@ -113,10 +113,10 @@ def _create_windows(signal, labels, window_size, stride, anomaly_threshold=0.10)
     return np.array(X_windows), np.array(y_windows)
 def main():
     window_size = 512
-    batch_size = 64
+    batch_size = 128
     epochs = 150
     learning_rate = 0.001
-    patience = 10
+    patience = 5
     
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
     logs_dir = os.path.join(script_dir, 'logs')
@@ -146,7 +146,7 @@ def main():
     log(f"Learning Rate: {learning_rate}")
     log(f"Early Stopping Patience: {patience}")
     log(f"Sliding Window Stride: 32")
-    log(f"LR Scheduler: ReduceLROnPlateau (patience=4, factor=0.5)")
+    log(f"LR Scheduler: ReduceLROnPlateau (patience=2, factor=0.5)")
     log(f"Data Augmentation: None (randomness handled by data generator)")
     log(f"Train/Test Split: Temporal (no data leakage)")
     
@@ -228,7 +228,7 @@ def main():
     
     criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=4, factor=0.5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, factor=0.5)
     
     save_dir = os.path.join(script_dir, 'saved_models')
     os.makedirs(save_dir, exist_ok=True)

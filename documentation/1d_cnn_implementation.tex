@@ -16,15 +16,14 @@ The \texttt{dataset\_loader.py} module bridges the synthetic \texttt{.csv} gener
 \end{enumerate}
 
 \subsection{Architecture Definition (\texttt{model.py})}
-The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a 3-block convolutional architecture with a progressively narrowing kernel strategy to balance global structure capture with fine-grained feature extraction:
+The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a compact 2-block convolutional architecture designed to capture the temporal signatures of anomaly shapes with minimal overhead:
 \begin{itemize}
     \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=16, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 2:} \texttt{Conv1d(in=16, out=32, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 3:} \texttt{Conv1d(in=32, out=64, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 2:} \texttt{Conv1d(in=16, out=32, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
 \end{itemize}
-The early layers use larger kernels (7, 7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while the final layer uses a smaller kernel (5) to refine local features. To prevent catastrophic spatial loss while retaining deep abstraction, the network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
+The first layer uses a large kernel (7) to capture the broad temporal envelope of anomaly shapes, while the second uses a slightly smaller kernel (5) for finer detail. The network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
 
-This flattened sequence vector of size 256 ($64 \times 4$) is then passed through a classifier head composed of \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(256, 32)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(32, num\_classes)}. The dropout layers serve as regularization to prevent overfitting. The total model footprint totals approximately 22,727 trainable parameters.
+This flattened sequence vector of size 128 ($32 \times 4$) is then passed directly through \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.3)} $\rightarrow$ \texttt{Linear(128, num\_classes)}. The hidden FC layer was removed since the pooled temporal bins already provide sufficiently discriminative features. The total model footprint totals approximately 3,719 trainable parameters.
 
 \subsection{Training Loop (\texttt{train.py})}
 The training script establishes the complete PyTorch training ecosystem with GPU acceleration and comprehensive logging:
