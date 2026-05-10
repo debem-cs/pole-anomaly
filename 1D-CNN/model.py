@@ -28,14 +28,7 @@ class Anomaly1DCNN(nn.Module):
             nn.ReLU(),
             nn.MaxPool1d(kernel_size=2)
         )
-        
-        # Block 4
-        self.block4 = nn.Sequential(
-            nn.Conv1d(in_channels=64, out_channels=64, kernel_size=3, padding=1),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2)
-        )
+
 
         
         # Regional Pooling - preserves 4 temporal bins to maintain shape topography
@@ -55,7 +48,6 @@ class Anomaly1DCNN(nn.Module):
         x = self.block1(x)
         x = self.block2(x)
         x = self.block3(x)
-        x = self.block4(x)
         x = self.global_pool(x)
         x = self.classifier(x)
         return x
