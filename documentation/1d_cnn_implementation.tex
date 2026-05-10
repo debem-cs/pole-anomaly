@@ -16,17 +16,15 @@ The \texttt{dataset\_loader.py} module bridges the synthetic \texttt{.csv} gener
 \end{enumerate}
 
 \subsection{Architecture Definition (\texttt{model.py})}
-The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a 5-block convolutional architecture with a progressively narrowing kernel strategy to balance global structure capture with fine-grained feature extraction:
+The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a compact 3-block convolutional architecture with a progressively narrowing kernel strategy to balance global structure capture with fine-grained feature extraction:
 \begin{itemize}
-    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=32, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 2:} \texttt{Conv1d(in=32, out=64, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 3:} \texttt{Conv1d(in=64, out=128, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 4:} \texttt{Conv1d(in=128, out=128, kernel=3, padding=1)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 5:} \texttt{Conv1d(in=128, out=256, kernel=3, padding=1)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=8, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 2:} \texttt{Conv1d(in=8, out=16, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 3:} \texttt{Conv1d(in=16, out=32, kernel=3, padding=1)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
 \end{itemize}
-The early layers use larger kernels (7, 7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while later layers use smaller kernels (5, 3, 3) to refine local features. To prevent catastrophic spatial loss while retaining deep abstraction, the network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
+The first layer uses a large kernel (7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while later layers use progressively smaller kernels (5, 3) to refine local features. To prevent catastrophic spatial loss, the network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
 
-This flattened sequence vector of size 1024 ($256 \times 4$) is then passed through a classifier head composed of \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(1024, 64)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(64, num\_classes)}. The dropout layers serve as regularization to prevent overfitting. The total model footprint totals approximately 270,728 trainable parameters.
+This flattened sequence vector of size 128 ($32 \times 4$) is then passed through a classifier head composed of \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.3)} $\rightarrow$ \texttt{Linear(128, 16)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.1)} $\rightarrow$ \texttt{Linear(16, num\_classes)}. The dropout rates are kept low given the model's small capacity. The total model footprint totals approximately 4,583 trainable parameters.
 
 \subsection{Training Loop (\texttt{train.py})}
 The training script establishes the complete PyTorch training ecosystem with GPU acceleration and comprehensive logging:
