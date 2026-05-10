@@ -78,9 +78,9 @@ def create_synthetic_dataset():
             f.write(f"{cls_id}: {name}\n")
 
     # 3. Configuration
-    N_synthetic = 100000
+    N_synthetic = 10000000
     CHUNK_SIZE = 50000  # Process this many points at a time to limit RAM usage
-    num_anomalies = np.random.randint(50, 80)
+    num_anomalies = np.random.randint(5000, 8000)
     
     # Pre-compute all anomaly injection points and their shapes
     spacing = N_synthetic // (num_anomalies + 1)
@@ -96,8 +96,8 @@ def create_synthetic_dataset():
         df_template = loaded_templates[chosen_template_name]
         
         target_amplitude = std_noise * np.random.uniform(3.0, 7.6)
-        target_period = np.random.randint(200, 500)
-        variance_level = np.random.uniform(0.02, 0.08)
+        target_period = np.random.randint(80, 400)
+        variance_level = np.random.uniform(0.02, 0.06)
 
         t_discrete, v_discrete = generate_anomaly(
             df_template, 

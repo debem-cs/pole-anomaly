@@ -1,9 +1,0 @@
-time,value,t_minus,t_plus,v_minus,v_plus,interp
-0.0,0.0,0,0,0,0,linear
-0.15,1.0,1,1,1,1,linear
-0.3,0.5,1,1,1,1,linear
-0.45,1.0,1,1,1,1,linear
-0.6,0.5,1,1,1,1,linear
-0.95,0.5,1,0,1,1,linear
-0.95,0,0,1,1,1,linear
-1.0,0.0,0,0,0,0,linear
