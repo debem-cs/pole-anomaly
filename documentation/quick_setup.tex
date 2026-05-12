@@ -6,19 +6,24 @@ To initialize the project on a new machine, execute the following commands in th
 
 \begin{lstlisting}[language=bash]
 # 1. Create a Python Virtual Environment
-|\BeginAccSupp{ActualText={\detokenize{py -3.13 -m venv .venv}}}\ttfamily\footnotesize py -3.13 -m venv .venv\EndAccSupp{}|
+|\BeginAccSupp{ActualText={\detokenize{py -3.14 -m venv .venv}}}\ttfamily\footnotesize py -3.14 -m venv .venv\EndAccSupp{}|
 
 # 2. Activate the Environment (Windows PowerShell)
 |\BeginAccSupp{ActualText={\detokenize{.\.venv\Scripts\Activate.ps1}}}\ttfamily\footnotesize .\textbackslash .venv\textbackslash Scripts\textbackslash Activate.ps1\EndAccSupp{}|
 
-# 3. Install strictly required numerical libraries
+# 3. Install all dependencies
 |\BeginAccSupp{ActualText={\detokenize{pip install -r requirements.txt}}}\ttfamily\footnotesize pip install -r requirements.txt\EndAccSupp{}|
 \end{lstlisting}
 
 \subsection{Dependencies}
-The \texttt{requirements.txt} installs the following core standard math libraries:
+The \texttt{requirements.txt} installs the following libraries:
 \begin{itemize}
-    \item \texttt{numpy} \& \texttt{pandas}: For fast mathematical array manipulations and template CSV handling.
-    \item \texttt{plotly}: For high-fidelity, interactive visualizations saved in HTML logs.
-    \item \texttt{scipy}, \texttt{statsmodels}, \texttt{tslearn}: Required specific dependencies for statistical interpolation and historical legacy dataset tests.
+    \item \texttt{numpy} \& \texttt{pandas}: Fast numerical array manipulation and CSV template handling.
+    \item \texttt{torch} (PyTorch): Deep learning framework for the 1D-CNN. Installed from the PyTorch Nightly channel with CUDA 12.8 support via \texttt{-{}-extra-index-url}.
+    \item \texttt{plotly} \& \texttt{kaleido}: Interactive HTML visualizations and static PNG export.
+    \item \texttt{scikit-learn}: Utility functions for metrics and data splitting.
+    \item \texttt{matplotlib}: Supplementary plotting library.
+    \item \texttt{scipy}, \texttt{statsmodels}, \texttt{tslearn}: Statistical interpolation and legacy dataset compatibility.
 \end{itemize}
+
+\noindent\textbf{Note:} The \texttt{-{}-pre} flag in \texttt{requirements.txt} enables installation of pre-release PyTorch builds, which is required for CUDA 12.8 support on newer GPUs (e.g., NVIDIA RTX 5060).

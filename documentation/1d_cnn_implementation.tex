@@ -1,14 +1,120 @@
-\section{Reference PyTorch Implementation: 1D-CNN}
+\section{Neural Networks: Theory and Fundamentals}
+This section provides a self-contained introduction to neural networks, building the theoretical foundation necessary to understand the 1D-CNN classifier implemented in this project. No prior knowledge of machine learning is assumed.
 
-To validate the proposed architectures, a functional baseline implementation of the 1D-CNN was developed using PyTorch. The architecture has been specifically designed for \textbf{Multi-Class Classification}, capable of distinguishing between various anomaly templates (Bell, Square, M, etc.). The codebase is organized into modular scripts within the \texttt{1D-CNN} directory, with full CUDA GPU acceleration support.
+\subsection{The Artificial Neuron}
+A neural network is built from simple computational units called \textbf{neurons} (or \textbf{perceptrons}). Each neuron takes a vector of inputs $\mathbf{x} = [x_1, x_2, \ldots, x_n]$, multiplies each input by a learned \textbf{weight} $w_i$, adds a \textbf{bias} term $b$, and passes the result through a non-linear \textbf{activation function} $\sigma$:
+\begin{equation}
+    y = \sigma\!\left(\sum_{i=1}^{n} w_i x_i + b\right) = \sigma(\mathbf{w}^T \mathbf{x} + b)
+\end{equation}
 
-\subsection{Data Processing (\texttt{dataset\_loader.py})}
-The \texttt{dataset\_loader.py} module bridges the synthetic \texttt{.csv} generator and the neural network. It performs the following steps:
+The weights and bias are the \textbf{learnable parameters} of the neuron. During training, these values are adjusted so that the neuron's output $y$ matches the desired output for a given input.
+
+\subsubsection{Activation Functions}
+Without the non-linear activation function $\sigma$, stacking multiple neurons would be equivalent to a single linear transformation---no matter how many layers are used, the overall mapping would remain linear. Common activation functions include:
+\begin{itemize}
+    \item \textbf{ReLU} (Rectified Linear Unit): $\sigma(z) = \max(0, z)$. The most widely used activation in modern networks. It outputs zero for negative inputs and passes positive values unchanged. This introduces non-linearity while avoiding the vanishing gradient problem that plagued earlier functions like Sigmoid.
+    \item \textbf{Sigmoid}: $\sigma(z) = \frac{1}{1 + e^{-z}}$. Squashes the output to the range $(0, 1)$, useful for binary probability outputs.
+    \item \textbf{Softmax}: Applied to a vector of logits $\mathbf{z}$, it converts them into a probability distribution: $\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_j e^{z_j}}$. Used in the output layer for multi-class classification to ensure the predicted probabilities sum to 1.
+\end{itemize}
+
+\subsection{From Neurons to Networks}
+A \textbf{neural network} is formed by organizing neurons into \textbf{layers}:
+\begin{itemize}
+    \item \textbf{Input layer}: Receives the raw data (e.g., a 512-point signal window).
+    \item \textbf{Hidden layers}: Intermediate layers that progressively transform the data. Each layer extracts increasingly abstract features from its input. For example, the first hidden layer might detect simple edges, while deeper layers combine those edges into complex shapes.
+    \item \textbf{Output layer}: Produces the final prediction (e.g., 7 class probabilities for our anomaly classifier).
+\end{itemize}
+
+When every neuron in one layer is connected to every neuron in the next, the layer is called a \textbf{fully connected} (or \textbf{dense}) layer. The full computation from input to output is called the \textbf{forward pass}.
+
+\subsection{The Loss Function}
+To train the network, we need a mathematical measure of how wrong its predictions are. This is the \textbf{loss function} $\mathcal{L}$, which compares the network's output $\hat{y}$ to the true label $y$. The goal of training is to minimize this loss.
+
+For multi-class classification, the standard loss function is \textbf{Cross-Entropy Loss}:
+\begin{equation}
+    \mathcal{L} = -\sum_{c=1}^{C} y_c \log(\hat{y}_c)
+\end{equation}
+where $C$ is the number of classes, $y_c$ is 1 for the true class and 0 otherwise (one-hot encoding), and $\hat{y}_c$ is the predicted probability for class $c$. This loss is zero when the prediction is perfect and increases sharply when the model assigns low probability to the correct class.
+
+\subsection{Gradient Descent and Backpropagation}
+Training a neural network means finding the values of all weights $\mathbf{w}$ and biases $b$ that minimize the loss $\mathcal{L}$.
+
+\subsubsection{Gradient Descent}
+Imagine the loss function as a high-dimensional landscape where the height at each point represents the error for a particular configuration of weights. Gradient descent works by:
+\begin{enumerate}
+    \item Computing the \textbf{gradient} $\nabla_\mathbf{w} \mathcal{L}$---the vector of partial derivatives of the loss with respect to each weight. This points in the direction of steepest increase.
+    \item Taking a step in the \textbf{opposite} direction (downhill) to reduce the loss:
+    \begin{equation}
+        \mathbf{w} \leftarrow \mathbf{w} - \eta \cdot \nabla_\mathbf{w} \mathcal{L}
+    \end{equation}
+    where $\eta$ is the \textbf{learning rate}, a hyperparameter controlling the step size. Too large and the optimizer overshoots the minimum; too small and convergence is impractically slow.
+\end{enumerate}
+
+\subsubsection{Backpropagation}
+Computing the gradient of the loss with respect to every weight in a deep network is made efficient by the \textbf{backpropagation algorithm}. It applies the chain rule of calculus layer by layer, propagating the error signal backward from the output layer to the input layer:
+
+For a weight $w$ in layer $l$ that produces output $z_l = w \cdot a_{l-1} + b$ (where $a_{l-1}$ is the activation from the previous layer), the gradient is decomposed as:
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial w} = \frac{\partial \mathcal{L}}{\partial z_l} \cdot \frac{\partial z_l}{\partial w} = \delta_l \cdot a_{l-1}
+\end{equation}
+where $\delta_l = \frac{\partial \mathcal{L}}{\partial z_l}$ is the \textbf{error signal} at layer $l$. The key insight is that $\delta_l$ can be computed recursively from $\delta_{l+1}$, making the computation scale linearly with network depth rather than exponentially.
+
+\subsubsection{Stochastic Gradient Descent and Adam}
+In practice, computing the gradient over the entire dataset is prohibitively expensive. \textbf{Stochastic Gradient Descent (SGD)} approximates the true gradient using a small random subset (\textbf{mini-batch}) of the data. The \textbf{Adam} optimizer (used in this project) extends SGD by maintaining adaptive per-parameter learning rates using exponential moving averages of the first and second moments of the gradients, leading to faster and more stable convergence.
+
+\subsection{Regularization: Preventing Overfitting}
+A model that memorizes the training data but fails to generalize to unseen data is said to \textbf{overfit}. Several techniques prevent this:
+
+\begin{itemize}
+    \item \textbf{Dropout}: During training, a random fraction of neuron activations are set to zero at each forward pass (e.g., 40\% dropout). This forces the network to learn redundant representations rather than relying on any single neuron, acting as an implicit ensemble of smaller networks.
+    \item \textbf{Batch Normalization}: Normalizes the input to each layer by subtracting the batch mean and dividing by the batch standard deviation. This stabilizes the distribution of activations throughout training, enabling higher learning rates and faster convergence.
+    \item \textbf{Early Stopping}: Monitor the validation loss during training. When it stops improving for a set number of epochs (\textbf{patience}), training is halted and the best-performing weights are restored. This prevents the model from continuing to memorize noise in the training set.
+\end{itemize}
+
+\subsection{Convolutional Neural Networks (CNN)}
+Standard fully connected networks treat each input element independently, ignoring spatial or temporal relationships. \textbf{Convolutional Neural Networks} address this by using \textbf{convolutional layers}, which slide a small learnable filter (or \textbf{kernel}) across the input to detect local patterns.
+
+\subsubsection{The Convolution Operation}
+For a 1D input signal $x[t]$ and a kernel $k$ of size $K$, the convolution produces a feature map:
+\begin{equation}
+    (x * k)[t] = \sum_{i=0}^{K-1} k[i] \cdot x[t + i]
+\end{equation}
+
+This operation has three key properties:
+\begin{enumerate}
+    \item \textbf{Local connectivity}: Each output element depends only on a small neighborhood of the input (the receptive field), not the entire signal.
+    \item \textbf{Weight sharing}: The same kernel is applied at every position along the signal, drastically reducing the number of parameters compared to a fully connected layer.
+    \item \textbf{Translation equivariance}: If a pattern shifts in time, the corresponding activation in the feature map shifts by the same amount. The network detects the pattern regardless of where it appears.
+\end{enumerate}
+
+\subsubsection{Pooling}
+After convolution, \textbf{pooling layers} downsample the feature maps by taking the maximum (\textbf{MaxPooling}) or average (\textbf{AvgPooling}) over non-overlapping regions:
+\begin{equation}
+    \text{MaxPool}(x)[t] = \max_{i \in [2t, 2t+1]} x[i]
+\end{equation}
+Pooling reduces the spatial resolution, lowers computational cost, and increases the effective receptive field of subsequent layers. For a window of 512 points, three MaxPool layers with kernel 2 reduce the sequence from 512 $\rightarrow$ 256 $\rightarrow$ 128 $\rightarrow$ 64 points.
+
+\subsubsection{Why 1D-CNN for Anomaly Detection?}
+In this project, the input is a \textbf{1D time series} (gamma dose rate vs. time), not a 2D image. A 1D-CNN is the natural choice because:
+\begin{itemize}
+    \item Anomaly shapes (Bell, Square, M, etc.) are defined by their \textbf{local temporal morphology}---the specific sequence of rises, plateaus, and falls. 1D convolutions are designed to detect exactly these local patterns.
+    \item The \textbf{translation equivariance} of convolutions means the network can detect an anomaly regardless of where it appears in the signal window.
+    \item Compared to recurrent networks (RNNs/LSTMs), CNNs are \textbf{highly parallelizable}, making them significantly faster for both training and inference on GPU hardware.
+    \item The small kernel sizes (5--7 points) match the temporal scale of the anomaly features, and stacking multiple convolutional blocks builds up the receptive field to capture the full anomaly structure (80--400 points).
+\end{itemize}
+
+\newpage
+
+\section{1D-CNN Implementation}
+This section describes the concrete PyTorch implementation of the 1D-CNN for multi-class anomaly classification. The codebase is organized into modular scripts within the \texttt{1D-CNN/} directory, with full CUDA GPU acceleration support.
+
+\subsection{Data Processing (\texttt{train.py})}
+The data loading and preprocessing logic is embedded in the \texttt{load\_data()} function within \texttt{train.py}. It bridges the synthetic \texttt{.csv} generator and the neural network through the following steps:
 \begin{enumerate}
     \item \textbf{Temporal Split:} The continuous signal is split chronologically \textit{before} windowing: the first 80\% of time steps are reserved for training and the remaining 20\% for testing. This prevents \textbf{data leakage}, which would occur with a random split because overlapping windows (stride 32 over a 512-point window) share up to 94\% of their data points.
-    \item \textbf{Sliding Window Extraction:} Each split is independently sliced into overlapping windows (configurable size, default 512, stride 32).
-    \item \textbf{Threshold-Based Labeling:} A window is only labeled as a specific anomaly class if the anomaly occupies at least \textbf{10\%} of the window length. This prevents the CNN from learning that windows containing 99\% pure noise should be classified as anomalies. When the threshold is met, the most frequent anomaly class ID within the window is assigned via majority voting (\texttt{np.unique} with \texttt{return\_counts}).
-    \item \textbf{Per-Window Centering (Instance Normalization):} To make the network robust against the slowly wandering background baseline generated by the Ornstein-Uhlenbeck process, each sliding window is independently centered by subtracting its own local mean $\mu_{\mathrm{window}}$. However, a global standard deviation $\sigma_{\mathrm{train}}$ is computed across all centered training windows to preserve the relative amplitudes of the spikes. This prevents the model from "squashing" small anomalies into looking like normal noise. The test set is scaled using this same global statistic. Critically, the global standard deviation is persisted to \texttt{normalization\_stats.json} so that the inference pipeline applies \textit{identical} amplitude scaling:
+    \item \textbf{Sliding Window Extraction:} Each split is independently sliced into overlapping windows (size 512, stride 32).
+    \item \textbf{Threshold-Based Labeling:} A window is only labeled as a specific anomaly class if the anomaly occupies at least \textbf{10\%} of the window length. This prevents the CNN from learning that windows containing 99\% pure noise should be classified as anomalies. When the threshold is met, the most frequent anomaly class ID within the window is assigned via majority voting.
+    \item \textbf{Per-Window Centering (Instance Normalization):} To make the network robust against the slowly wandering background baseline generated by the Ornstein-Uhlenbeck process, each sliding window is independently centered by subtracting its own local mean $\mu_{\mathrm{window}}$. However, a global standard deviation $\sigma_{\mathrm{train}}$ is computed across all centered training windows to preserve the relative amplitudes of the spikes. The test set is scaled using this same global statistic. This value is persisted to \texttt{normalization\_stats.json} for identical inference normalization:
     \begin{equation}
         x_{\mathrm{scaled}} = \frac{x - \mu_{\mathrm{window}}}{\sigma_{\mathrm{train}}}
     \end{equation}
@@ -16,35 +122,51 @@ The \texttt{dataset\_loader.py} module bridges the synthetic \texttt{.csv} gener
 \end{enumerate}
 
 \subsection{Architecture Definition (\texttt{model.py})}
-The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a 3-block convolutional architecture with a progressively narrowing kernel strategy to balance global structure capture with fine-grained feature extraction:
+The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a 3-block convolutional architecture with a progressively narrowing kernel strategy:
 \begin{itemize}
     \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=16, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
     \item \textbf{Block 2:} \texttt{Conv1d(in=16, out=32, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
     \item \textbf{Block 3:} \texttt{Conv1d(in=32, out=64, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
 \end{itemize}
-The early layers use larger kernels (7, 7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while the final layer uses a smaller kernel (5) to refine local features. The network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
+The early layers use larger kernels (7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while the final layer uses a smaller kernel (5) to refine local features. The channel count doubles at each block (16 $\rightarrow$ 32 $\rightarrow$ 64), progressively expanding the network's feature representation capacity.
 
-This flattened sequence vector of size 256 ($64 \times 4$) is then passed through a classifier head composed of \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(256, 32)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(32, num\_classes)}. The dropout layers serve as regularization to prevent overfitting. The total model footprint totals approximately 22,727 trainable parameters.
+The network utilizes a \textbf{Regional Pooling layer} (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes---for example, distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{bell\_sq} block, since the averaged values in each bin differ between these shapes.
+
+This flattened vector of size 256 ($64 \times 4$) is then passed through a classifier head: \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(256, 32)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(32, 7)}. The total model footprint is \textbf{22,727 trainable parameters}.
 
 \subsection{Training Loop (\texttt{train.py})}
 The training script establishes the complete PyTorch training ecosystem with GPU acceleration and comprehensive logging:
 \begin{itemize}
-    \item \textbf{Data Split:} Since the dataset loader already performs the temporal train/test split, the training script further divides the training set 80/20 into train/validation subsets using a random permutation for early stopping monitoring.
-    \item \textbf{Class Imbalance Handling:} Uses \texttt{np.bincount} to dynamically calculate the distribution of each class. It computes inverse frequency weights as $w_c = \frac{N_{\mathrm{total}}}{C \cdot N_c}$ and passes them to the \texttt{CrossEntropyLoss} criterion, forcing the optimizer to treat rare anomaly shapes with the same importance as the dominant normal background.
-    \item \textbf{Optimization:} Employs the Adam optimizer with an initial learning rate of $10^{-3}$.
-    \item \textbf{Learning Rate Scheduling:} A \texttt{ReduceLROnPlateau} scheduler (patience 2 epochs, factor 0.5) monitors the validation loss and halves the learning rate when progress stalls. This reduces the oscillatory behavior observed in the validation loss during later training stages.
-    \item \textbf{Early Stopping:} A patience-based mechanism (5 epochs) monitors the validation loss. The best model weights are saved to \texttt{best\_1d\_cnn\_pytorch.pth} only when the validation loss improves.
-    \item \textbf{Evaluation:} After training, the best checkpoint is reloaded and evaluated on the held-out test set. A per-class accuracy breakdown is computed and logged.
-    \item \textbf{Logging:} A \texttt{.txt} log file is generated in the \texttt{logs/} directory, recording all hyperparameters, environment details (PyTorch version, GPU model, CUDA version), class distributions, per-epoch loss curves with current learning rate, training duration, and per-class test accuracy.
+    \item \textbf{Data Split:} The training set is further divided 80/20 into train/validation subsets using a random permutation for early stopping monitoring.
+    \item \textbf{Class Imbalance Handling:} Computes inverse frequency weights $w_c = \frac{N_{\mathrm{total}}}{C \cdot N_c}$ and passes them to the \texttt{CrossEntropyLoss} criterion, forcing the optimizer to treat rare anomaly shapes with the same importance as the dominant normal background.
+    \item \textbf{Optimization:} Adam optimizer with initial learning rate $10^{-3}$.
+    \item \textbf{Learning Rate Scheduling:} \texttt{ReduceLROnPlateau} (patience 2, factor 0.5) monitors validation loss and halves the learning rate when progress stalls.
+    \item \textbf{Early Stopping:} Patience of 5 epochs. The best model weights are saved only when validation loss improves.
+    \item \textbf{Logging:} A comprehensive \texttt{.txt} log and an interactive Plotly training curves chart (HTML + PNG) are generated.
 \end{itemize}
 
+\subsubsection{Training Results}
+The model was trained on a 10M-point synthetic dataset (249,985 windows) on an NVIDIA GeForce RTX 5060 Laptop GPU with CUDA 12.8:
+\begin{itemize}
+    \item \textbf{Convergence:} 82 epochs, 9 minutes 5 seconds. Learning rate decayed from $10^{-3}$ to $8 \times 10^{-6}$ across 7 reduction steps.
+    \item \textbf{Final losses:} Best validation loss = 0.2494, test loss = 0.3028.
+    \item \textbf{Test accuracy:} 93.4\% per-window accuracy (62,485 windows). Event-level accuracy is significantly higher due to overlapping window accumulation during inference.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{media/training_curves.png}
+    \caption{Training and validation loss curves with learning rate schedule. The validation loss remains below the training loss due to class-weighted cross-entropy inflating the training loss for minority anomaly classes.}
+    \label{fig:training_curves}
+\end{figure}
+
 \subsection{Architecture Search}
-The final architecture was selected through an empirical search over several candidate configurations. All variants were trained on the same 10M-point synthetic dataset (249,985 training windows) and evaluated on both per-window test accuracy and event-level inference over a 100,000-point segment containing 77 anomaly events. Key findings:
+The final architecture was selected through an empirical search over several candidate configurations. All variants were trained on the same 10M-point dataset and evaluated on both per-window test accuracy and event-level inference over a 100,000-point segment containing 77 anomaly events:
 
 \begin{itemize}
-    \item \textbf{Depth vs.\ Width:} Reducing the number of convolutional blocks below 3 degrades performance unless channel width is increased to compensate. A 2-block model with narrow channels (16$\rightarrow$32) lacked sufficient representational capacity, while a 2-block model with wider channels (32$\rightarrow$64) recovered most of the accuracy.
-    \item \textbf{Diminishing returns of depth:} Blocks 4 and 5 from the original architecture contributed negligible accuracy gains while inflating the parameter count by $12\times$.
-    \item \textbf{Training speed:} Tightening the early stopping patience from 10 to 5 epochs and the LR scheduler patience from 4 to 2 epochs, combined with doubling the batch size to 128, reduced training time significantly without affecting convergence quality.
+    \item \textbf{Depth vs.\ Width:} Reducing the number of convolutional blocks below 3 degrades performance unless channel width is increased. A 2-block model with narrow channels (16$\rightarrow$32) lacked sufficient representational capacity, while a 2-block model with wider channels (32$\rightarrow$64) recovered most accuracy.
+    \item \textbf{Diminishing returns of depth:} Blocks 4 and 5 contributed negligible accuracy gains while inflating the parameter count by $12\times$.
+    \item \textbf{Training speed:} Tightening early stopping patience from 10 to 5 and LR scheduler patience from 4 to 2, combined with doubling the batch size to 128, reduced training time without affecting convergence.
 \end{itemize}
 
 \begin{table}[H]
@@ -69,24 +191,18 @@ The final architecture was selected through an empirical search over several can
 \end{tabular}
 \end{table}
 
-The 3-block architecture was selected as the final model, achieving perfect event-level classification with $12\times$ fewer parameters than the 5-block architecture and the fastest training time. The 2-block wide variant is a viable lightweight alternative at the cost of one misclassification on a very short 74-point event.
+The 3-block architecture was selected as the final model, achieving perfect event-level classification with $12\times$ fewer parameters than the 5-block architecture and the fastest training time.
 
 \subsection{Inference and Evaluation (\texttt{visualize\_inference.py})}
-To interpret the model's behavior on streaming data, a visualization and evaluation script runs the trained model over a continuous segment of the dataset using a fine-grained sliding window (stride of 10). Inference is performed on GPU when available. Two key design decisions distinguish this inference pipeline from naive approaches:
+The inference script evaluates the trained model on a continuous segment of the dataset using a fine-grained sliding window (stride 10, window 512). Two key design decisions:
 
 \begin{enumerate}
-    \item \textbf{Consistent Normalization:} The inference script loads the global $\sigma_{\mathrm{train}}$ value saved during training from \texttt{normalization\_stats.json}. It applies the exact same per-window centering strategy by dynamically calculating $\mu_{\mathrm{window}}$ during the sliding pass. This ensures the model is perfectly invariant to vertical baseline drift while seeing the same scale distribution it was trained on.
-    \item \textbf{Overlapping Window Accumulation:} Instead of assigning each window's prediction to a single center point, the softmax probability vector is \textbf{accumulated} across all points covered by the window. With stride 10 and window size 512, each point is covered by up to 51 overlapping windows. The final per-point class probability is the average across all contributing windows:
+    \item \textbf{Consistent Normalization:} The inference script loads the global $\sigma_{\mathrm{train}}$ from \texttt{normalization\_stats.json} and applies the same per-window centering strategy.
+    \item \textbf{Overlapping Window Accumulation:} The softmax probability vector is \textbf{accumulated} across all points covered by each window. With stride 10 and window 512, each point is covered by up to 51 overlapping windows. The final per-point class probability is the average:
     \begin{equation}
         P_{\mathrm{final}}(c \mid t) = \frac{1}{|\mathcal{W}_t|} \sum_{w \in \mathcal{W}_t} P_w(c)
     \end{equation}
     where $\mathcal{W}_t$ is the set of all windows covering time step $t$. This ensemble-like averaging significantly reduces prediction noise.
-\end{enumerate}
-
-The script produces the following outputs:
-\begin{enumerate}
-    \item \textbf{Interactive Visualization:} An interactive dual-axis Plotly graph rendering the simulated gamma noise on the primary axis and distinct, colored probability curves for each anomaly class on the secondary axis. A rolling average (window of 30) is applied to smooth the accumulated probabilities.
-    \item \textbf{Event-Level Evaluation:} Rather than evaluating per-point predictions---which are misleading due to sliding window boundary spillover inflating false positives---the evaluation groups contiguous anomaly points into discrete \textbf{events}. For each event, the model's accumulated probability vectors are averaged and the \texttt{argmax} class is compared against the ground truth label. The log reports a per-event results table, an event-level confusion matrix, and derives per-class Precision, Recall, and F1-Score at the event granularity, along with the overall detection rate and exact classification accuracy.
 \end{enumerate}
 
 \begin{figure}[H]
@@ -96,28 +212,12 @@ The script produces the following outputs:
     \label{fig:cnn_visualization}
 \end{figure}
 
-\subsection{Training Results}
-The selected 3-block architecture (22,727 parameters) was trained on a 10M-point synthetic dataset comprising 249,985 sliding windows (512 points, stride 32) split temporally into 199,988 training, 49,997 validation, and 62,485 test windows. Training was performed on an NVIDIA GeForce RTX 5060 Laptop GPU using PyTorch with CUDA 12.8 acceleration. Key training outcomes:
-
-\begin{itemize}
-    \item \textbf{Convergence:} The model converged in 82 epochs (9 minutes 5 seconds), with the learning rate decaying from $10^{-3}$ to $8 \times 10^{-6}$ across 7 reduction steps before early stopping triggered.
-    \item \textbf{Final losses:} Best validation loss = 0.2494, test loss = 0.3028.
-    \item \textbf{Test accuracy:} 93.4\% per-window accuracy across 62,485 windows (note: event-level accuracy is significantly higher due to overlapping window accumulation during inference).
-\end{itemize}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.7\textwidth]{media/training_curves.png}
-    \caption{Training and validation loss curves with learning rate schedule for the 3-block 1D-CNN (22,727 parameters). The validation loss consistently stays below the training loss due to class-weighted cross-entropy inflating the training loss for minority anomaly classes.}
-    \label{fig:training_curves}
-\end{figure}
-
-\subsection{Inference Results}
-The trained model was evaluated on a 1,000,000-point segment of the dataset containing 777 anomaly events across 6 anomaly classes. Inference was performed using a sliding window (stride 10, window 512) with overlapping probability accumulation (Section~\ref{fig:cnn_visualization}).
+\subsubsection{Inference Results}
+The model was evaluated on a 1,000,000-point segment containing 777 anomaly events:
 
 \begin{table}[H]
 \centering
-\caption{Event-level inference results over 777 anomaly events in a 1M-point segment. Detection rate indicates whether the model identified the region as any anomaly type; exact classification requires the correct class.}
+\caption{Event-level inference results over 777 anomaly events. Detection rate indicates whether the model identified the region as any anomaly type; exact classification requires the correct class.}
 \label{tab:inference_results}
 \small
 \begin{tabular}{|l|c|}
@@ -165,16 +265,16 @@ square & 142 & 1.000 & 0.979 & 0.989 \\
 \end{tabular}
 \end{table}
 
-The 13 misclassifications are concentrated in the \texttt{bell\_sq} class (6 errors), which is the most morphologically ambiguous shape---its flat-topped profile can be confused with \texttt{square} at certain deformation levels, and its rounded shoulders can resemble \texttt{M} when the shape variance is high.
+The 13 misclassifications are concentrated in the \texttt{bell\_sq} class (6 errors), which is the most morphologically ambiguous shape---its flat-topped profile can be confused with \texttt{square}, and its rounded shoulders can resemble \texttt{M} at high deformation levels.
 
-\subsection{Robustness Analysis}
-To assess the model's sensitivity to degraded signal conditions, a robustness test was conducted by independently sweeping two axes while holding the other at its training baseline:
+\subsection{Robustness Analysis (\texttt{robustness\_test.py})}
+To assess the model's sensitivity to degraded signal conditions, a robustness test independently sweeps two axes while holding the other at its training baseline:
 \begin{enumerate}
     \item \textbf{Background noise intensity:} The standard deviation of the high-frequency sensor noise was scaled from $1\times$ to $3\times$ the baseline value ($\sigma = 2.70$ gamma dose units).
     \item \textbf{Anomaly shape deformation:} The variance parameter of the anomaly generator was scaled from $1\times$ to $8\times$ the baseline value (0.04), controlling how much each anomaly instance deviates from its canonical template shape.
 \end{enumerate}
 
-Each configuration generated a test dataset with 50 anomaly events using a fixed random seed to ensure identical anomaly positions and template selections across all runs. The model was evaluated at event-level granularity on each dataset.
+Each configuration generated a test dataset with 50 anomaly events using a fixed random seed to ensure identical anomaly positions and template selections across all runs.
 
 \begin{figure}[H]
     \centering
