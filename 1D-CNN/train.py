@@ -245,6 +245,12 @@ def main():
     
     train_start = datetime.now()
     
+    # Track history for plotting
+    history_epochs = []
+    history_train_loss = []
+    history_val_loss = []
+    history_lr = []
+    
     for epoch in range(epochs):
         model.train()
         train_loss = 0.0
@@ -290,6 +296,12 @@ def main():
                 status = "EARLY STOP"
         
         log(f"{epoch+1:02d}/{epochs:<5} {train_loss:<14.4f} {val_loss:<14.4f} {current_lr:<12.6f} {status}")
+        
+        # Record history
+        history_epochs.append(epoch + 1)
+        history_train_loss.append(train_loss)
+        history_val_loss.append(val_loss)
+        history_lr.append(current_lr)
         
         if patience_counter >= patience:
             break
@@ -343,6 +355,48 @@ def main():
     
     log(f"\nModel saved to: {model_path}")
     log(f"Log saved to: {log_path}")
+    
+    # ── Generate Training Curves Plot ──
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    
+    fig = make_subplots(specs=[[{'secondary_y': True}]])
+    
+    fig.add_trace(go.Scatter(
+        x=history_epochs, y=history_train_loss, mode='lines',
+        name='Train Loss', line=dict(color='#FF6B6B', width=2)
+    ), secondary_y=False)
+    
+    fig.add_trace(go.Scatter(
+        x=history_epochs, y=history_val_loss, mode='lines',
+        name='Val Loss', line=dict(color='#4ECDC4', width=2)
+    ), secondary_y=False)
+    
+    fig.add_trace(go.Scatter(
+        x=history_epochs, y=history_lr, mode='lines',
+        name='Learning Rate', line=dict(color='#FFE66D', width=1.5, dash='dot')
+    ), secondary_y=True)
+    
+    fig.update_layout(
+        title=f'1D-CNN Training Curves ({trainable_params:,} params)',
+        template='plotly_dark', height=450, width=900,
+        legend=dict(orientation='h', yanchor='top', y=1.12, xanchor='center', x=0.5)
+    )
+    fig.update_xaxes(title_text='Epoch')
+    fig.update_yaxes(title_text='Loss', secondary_y=False)
+    fig.update_yaxes(title_text='Learning Rate', secondary_y=True, showgrid=False)
+    
+    curves_html = os.path.join(logs_dir, 'training_curves.html')
+    fig.write_html(curves_html)
+    log(f"Training curves saved to: {curves_html}")
+    
+    try:
+        curves_png = os.path.join(logs_dir, 'training_curves.png')
+        fig.write_image(curves_png, width=900, height=450, scale=2)
+        log(f"Training curves PNG saved to: {curves_png}")
+    except Exception:
+        pass
+    
     log(f"\n{'=' * 60}")
 
 if __name__ == "__main__":

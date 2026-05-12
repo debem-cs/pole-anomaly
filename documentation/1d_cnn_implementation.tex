@@ -16,14 +16,15 @@ The \texttt{dataset\_loader.py} module bridges the synthetic \texttt{.csv} gener
 \end{enumerate}
 
 \subsection{Architecture Definition (\texttt{model.py})}
-The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a compact 2-block convolutional architecture that favors wide feature maps over depth, providing sufficient representational capacity to distinguish subtle shape differences:
+The \texttt{Anomaly1DCNN} class inherits from \texttt{torch.nn.Module} and implements a 3-block convolutional architecture with a progressively narrowing kernel strategy to balance global structure capture with fine-grained feature extraction:
 \begin{itemize}
-    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=32, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
-    \item \textbf{Block 2:} \texttt{Conv1d(in=32, out=64, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 1:} \texttt{Conv1d(in=1, out=16, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 2:} \texttt{Conv1d(in=16, out=32, kernel=7, padding=3)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
+    \item \textbf{Block 3:} \texttt{Conv1d(in=32, out=64, kernel=5, padding=2)} $\rightarrow$ \texttt{BatchNorm1d} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{MaxPool1d(2)}.
 \end{itemize}
-The first layer uses a large kernel (7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while the second uses a smaller kernel (5) to refine local features. The network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
+The early layers use larger kernels (7, 7) to capture broad temporal structure such as the overall envelope of anomaly shapes, while the final layer uses a smaller kernel (5) to refine local features. The network utilizes a Regional Pooling layer (\texttt{AdaptiveAvgPool1d(4)}) instead of Global Average Pooling. This preserves 4 distinct temporal bins, allowing the network to recognize the temporal topography of shapes (e.g., distinguishing the two separate peaks of an \texttt{M} shape from a solid \texttt{m\_sq} block).
 
-This flattened sequence vector of size 256 ($64 \times 4$) is then passed through a classifier head composed of \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(256, 32)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(32, num\_classes)}. The dropout layers serve as regularization to prevent overfitting. The total model footprint totals approximately 19,207 trainable parameters.
+This flattened sequence vector of size 256 ($64 \times 4$) is then passed through a classifier head composed of \texttt{Flatten()} $\rightarrow$ \texttt{Dropout(0.4)} $\rightarrow$ \texttt{Linear(256, 32)} $\rightarrow$ \texttt{ReLU} $\rightarrow$ \texttt{Dropout(0.2)} $\rightarrow$ \texttt{Linear(32, num\_classes)}. The dropout layers serve as regularization to prevent overfitting. The total model footprint totals approximately 22,727 trainable parameters.
 
 \subsection{Training Loop (\texttt{train.py})}
 The training script establishes the complete PyTorch training ecosystem with GPU acceleration and comprehensive logging:
@@ -31,11 +32,44 @@ The training script establishes the complete PyTorch training ecosystem with GPU
     \item \textbf{Data Split:} Since the dataset loader already performs the temporal train/test split, the training script further divides the training set 80/20 into train/validation subsets using a random permutation for early stopping monitoring.
     \item \textbf{Class Imbalance Handling:} Uses \texttt{np.bincount} to dynamically calculate the distribution of each class. It computes inverse frequency weights as $w_c = \frac{N_{\mathrm{total}}}{C \cdot N_c}$ and passes them to the \texttt{CrossEntropyLoss} criterion, forcing the optimizer to treat rare anomaly shapes with the same importance as the dominant normal background.
     \item \textbf{Optimization:} Employs the Adam optimizer with an initial learning rate of $10^{-3}$.
-    \item \textbf{Learning Rate Scheduling:} A \texttt{ReduceLROnPlateau} scheduler (patience 4 epochs, factor 0.5) monitors the validation loss and halves the learning rate when progress stalls. This reduces the oscillatory behavior observed in the validation loss during later training stages.
-    \item \textbf{Early Stopping:} A patience-based mechanism (10 epochs) monitors the validation loss. The best model weights are saved to \texttt{best\_1d\_cnn\_pytorch.pth} only when the validation loss improves.
+    \item \textbf{Learning Rate Scheduling:} A \texttt{ReduceLROnPlateau} scheduler (patience 2 epochs, factor 0.5) monitors the validation loss and halves the learning rate when progress stalls. This reduces the oscillatory behavior observed in the validation loss during later training stages.
+    \item \textbf{Early Stopping:} A patience-based mechanism (5 epochs) monitors the validation loss. The best model weights are saved to \texttt{best\_1d\_cnn\_pytorch.pth} only when the validation loss improves.
     \item \textbf{Evaluation:} After training, the best checkpoint is reloaded and evaluated on the held-out test set. A per-class accuracy breakdown is computed and logged.
     \item \textbf{Logging:} A \texttt{.txt} log file is generated in the \texttt{logs/} directory, recording all hyperparameters, environment details (PyTorch version, GPU model, CUDA version), class distributions, per-epoch loss curves with current learning rate, training duration, and per-class test accuracy.
 \end{itemize}
+
+\subsection{Architecture Search}
+The final architecture was selected through an empirical search over several candidate configurations. All variants were trained on the same 10M-point synthetic dataset (249,985 training windows) and evaluated on both per-window test accuracy and event-level inference over a 100,000-point segment containing 77 anomaly events. Key findings:
+
+\begin{itemize}
+    \item \textbf{Depth vs.\ Width:} Reducing the number of convolutional blocks below 3 degrades performance unless channel width is increased to compensate. A 2-block model with narrow channels (16$\rightarrow$32) lacked sufficient representational capacity, while a 2-block model with wider channels (32$\rightarrow$64) recovered most of the accuracy.
+    \item \textbf{Diminishing returns of depth:} Blocks 4 and 5 from the original architecture contributed negligible accuracy gains while inflating the parameter count by $12\times$.
+    \item \textbf{Training speed:} Tightening the early stopping patience from 10 to 5 epochs and the LR scheduler patience from 4 to 2 epochs, combined with doubling the batch size to 128, reduced training time significantly without affecting convergence quality.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Comparison of 1D-CNN architecture variants. Event-level metrics are computed over 77 anomaly events in a 100K-point inference segment. All models use \texttt{AdaptiveAvgPool1d(4)} regional pooling.}
+\label{tab:architecture_comparison}
+\small
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Variant} & \textbf{Channels} & \textbf{Params} & \textbf{Train Time} & \textbf{Event Acc.} & \textbf{Mean Conf.} \\
+\hline
+2-block narrow  & 16-32              & 3,719    & 8 min 12 s  & 88.3\%        & 66.8\% \\
+\hline
+2-block wide    & 32-64              & 19,207   & 5 min 49 s  & 98.7\%        & 79.7\% \\
+\hline
+\textbf{3-block} & \textbf{16-32-64}  & \textbf{22,727} & \textbf{5 min 45 s} & \textbf{100\%} & \textbf{90.2\%} \\
+\hline
+4-block         & 16-32-64-64        & 35,207   & 7 min 18 s  & 100\%         & 90.2\% \\
+\hline
+5-block        & 32-64-128-128-256  & 270,725  & 7 min 58 s  & 100\%         & 91.9\% \\
+\hline
+\end{tabular}
+\end{table}
+
+The 3-block architecture was selected as the final model, achieving perfect event-level classification with $12\times$ fewer parameters than the 5-block architecture and the fastest training time. The 2-block wide variant is a viable lightweight alternative at the cost of one misclassification on a very short 74-point event.
 
 \subsection{Inference and Evaluation (\texttt{visualize\_inference.py})}
 To interpret the model's behavior on streaming data, a visualization and evaluation script runs the trained model over a continuous segment of the dataset using a fine-grained sliding window (stride of 10). Inference is performed on GPU when available. Two key design decisions distinguish this inference pipeline from naive approaches:
