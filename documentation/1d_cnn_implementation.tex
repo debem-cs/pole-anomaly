@@ -95,3 +95,90 @@ The script produces the following outputs:
     \caption{Multi-Class 1D-CNN Confidence Probability mapped against Simulated Gamma Noise}
     \label{fig:cnn_visualization}
 \end{figure}
+
+\subsection{Training Results}
+The selected 3-block architecture (22,727 parameters) was trained on a 10M-point synthetic dataset comprising 249,985 sliding windows (512 points, stride 32) split temporally into 199,988 training, 49,997 validation, and 62,485 test windows. Training was performed on an NVIDIA GeForce RTX 5060 Laptop GPU using PyTorch with CUDA 12.8 acceleration. Key training outcomes:
+
+\begin{itemize}
+    \item \textbf{Convergence:} The model converged in 82 epochs (9 minutes 5 seconds), with the learning rate decaying from $10^{-3}$ to $8 \times 10^{-6}$ across 7 reduction steps before early stopping triggered.
+    \item \textbf{Final losses:} Best validation loss = 0.2494, test loss = 0.3028.
+    \item \textbf{Test accuracy:} 93.4\% per-window accuracy across 62,485 windows (note: event-level accuracy is significantly higher due to overlapping window accumulation during inference).
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{media/training_curves.png}
+    \caption{Training and validation loss curves with learning rate schedule for the 3-block 1D-CNN (22,727 parameters). The validation loss consistently stays below the training loss due to class-weighted cross-entropy inflating the training loss for minority anomaly classes.}
+    \label{fig:training_curves}
+\end{figure}
+
+\subsection{Inference Results}
+The trained model was evaluated on a 1,000,000-point segment of the dataset containing 777 anomaly events across 6 anomaly classes. Inference was performed using a sliding window (stride 10, window 512) with overlapping probability accumulation (Section~\ref{fig:cnn_visualization}).
+
+\begin{table}[H]
+\centering
+\caption{Event-level inference results over 777 anomaly events in a 1M-point segment. Detection rate indicates whether the model identified the region as any anomaly type; exact classification requires the correct class.}
+\label{tab:inference_results}
+\small
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Metric} & \textbf{Value} \\
+\hline
+Total events & 777 \\
+\hline
+Detection rate (any anomaly) & 100.0\% (777/777) \\
+\hline
+Exact classification accuracy & 98.3\% (764/777) \\
+\hline
+Mean confidence & 88.8\% \\
+\hline
+Inference throughput & 1,421 windows/sec \\
+\hline
+Inference time (1M points) & 70 s \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Per-class Precision, Recall, and F1-Score at event-level granularity.}
+\label{tab:per_class_metrics}
+\small
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Class} & \textbf{Support} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+\hline
+bell & 128 & 0.992 & 0.992 & 0.992 \\
+\hline
+bell\_sq & 136 & 0.963 & 0.956 & 0.959 \\
+\hline
+fast\_ascend & 129 & 1.000 & 0.992 & 0.996 \\
+\hline
+fast\_descend & 116 & 0.983 & 0.991 & 0.987 \\
+\hline
+M & 126 & 0.962 & 0.992 & 0.977 \\
+\hline
+square & 142 & 1.000 & 0.979 & 0.989 \\
+\hline
+\textbf{Macro Average} & & \textbf{0.983} & \textbf{0.984} & \textbf{0.984} \\
+\hline
+\end{tabular}
+\end{table}
+
+The 13 misclassifications are concentrated in the \texttt{bell\_sq} class (6 errors), which is the most morphologically ambiguous shape---its flat-topped profile can be confused with \texttt{square} at certain deformation levels, and its rounded shoulders can resemble \texttt{M} when the shape variance is high.
+
+\subsection{Robustness Analysis}
+To assess the model's sensitivity to degraded signal conditions, a robustness test was conducted by independently sweeping two axes while holding the other at its training baseline:
+\begin{enumerate}
+    \item \textbf{Background noise intensity:} The standard deviation of the high-frequency sensor noise was scaled from $1\times$ to $3\times$ the baseline value ($\sigma = 2.70$ gamma dose units).
+    \item \textbf{Anomaly shape deformation:} The variance parameter of the anomaly generator was scaled from $1\times$ to $8\times$ the baseline value (0.04), controlling how much each anomaly instance deviates from its canonical template shape.
+\end{enumerate}
+
+Each configuration generated a test dataset with 50 anomaly events using a fixed random seed to ensure identical anomaly positions and template selections across all runs. The model was evaluated at event-level granularity on each dataset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{media/robustness_test.png}
+    \caption{Model robustness under increasing noise (left) and shape deformation (right). Event accuracy (solid) and mean confidence (dashed) are shown. The model is substantially more sensitive to shape deformation than to background noise.}
+    \label{fig:robustness}
+\end{figure}
