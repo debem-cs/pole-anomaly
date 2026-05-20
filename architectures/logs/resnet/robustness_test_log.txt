@@ -1,0 +1,61 @@
+======================================================================
+ResNet 1D ROBUSTNESS TEST
+Timestamp: 2026-05-21 00:58:06
+======================================================================
+
+Baseline noise std: 2.7033
+Global mean: 99.95
+Templates loaded: ['bell', 'bell_sq', 'fast_ascend', 'fast_descend', 'M', 'square']
+Class mapping: {'bell': 1, 'bell_sq': 2, 'fast_ascend': 3, 'fast_descend': 4, 'M': 5, 'square': 6}
+Number of classes: 7
+Device: cuda
+Training std: 3.9291
+
+======================================================================
+SWEEP 1: BACKGROUND NOISE INTENSITY
+(deformation held at baseline variance = 0.04)
+======================================================================
+
+Noise Mult.    Events    Macro F1    
+-------------------------------------
+1.00           50        94.0%       
+1.22           50        92.2%       
+1.44           50        90.4%       
+1.67           50        85.7%       
+1.89           50        78.4%       
+2.11           50        67.6%       
+2.33           50        64.6%       
+2.56           50        68.1%       
+2.78           50        54.3%       
+3.00           50        49.2%       
+
+======================================================================
+SWEEP 2: ANOMALY SHAPE DEFORMATION
+(noise held at baseline multiplier = 1.0)
+======================================================================
+
+Deform Mult.   Events    Macro F1    
+-------------------------------------
+1.00           50        92.2%       
+1.78           50        92.3%       
+2.56           50        85.9%       
+3.33           50        71.4%       
+4.11           50        63.0%       
+4.89           51        50.1%       
+5.67           50        34.4%       
+6.44           50        22.3%       
+7.22           50        26.4%       
+8.00           50        19.0%       
+
+======================================================================
+SUMMARY
+======================================================================
+Noise: F1 Score first drops below 50% at multiplier = 3.0x
+Deformation: F1 Score first drops below 50% at multiplier = 5.7x
+
+Generating robustness chart...
+Chart saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\robustness_test.html
+PNG saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\robustness_test.png
+
+Log saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\robustness_test_log.txt
+======================================================================

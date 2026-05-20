@@ -63,3 +63,36 @@ output_path = os.path.join(logs_dir, 'affichage_donnees.html')
 fig.write_html(output_path)
 print(f"Interactive plot (All Months) saved successfully to: {output_path}")
 
+# Also save a PNG per month using matplotlib
+for label, data in data_dict.items():
+    if data is None:
+        continue
+    N = data.shape[0]
+    start = Nh
+    end = N - Nh
+    t = np.arange(N)
+
+    for mois, month_name in meses_nomes.items():
+        if mois >= data.shape[1]:
+            continue
+        sig = data[:, mois]
+        plot_y = sig[start:end]
+        if label == 'Pression':
+            plot_y = plot_y - 800
+            name_label = f'{label} - 800 ({month_name})'
+        else:
+            name_label = f'{label} ({month_name})'
+
+        fig_mpl, ax = plt.subplots(figsize=(10, 4))
+        ax.plot(t[start:end], plot_y, linewidth=0.8)
+        ax.set_title(name_label)
+        ax.set_xlabel('Tempo em min')
+        ax.set_ylabel(label)
+        ax.grid(True, alpha=0.3)
+        fig_mpl.tight_layout()
+
+        png_path = os.path.join(logs_dir, f'affichage_donnees_{label}_{month_name}.png')
+        fig_mpl.savefig(png_path, dpi=150)
+        plt.close(fig_mpl)
+        print(f"PNG saved: {png_path}")
+

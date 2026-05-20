@@ -31,7 +31,7 @@ def main():
 
     # --- Configuration ---
     BASELINE_WINDOW = 480   # Moving average window for baseline estimation
-    DEVIATION_THRESHOLD = 2.5  # Number of std deviations above baseline to flag as "suspicious"
+    DEVIATION_THRESHOLD = 2  # Number of std deviations above baseline to flag as "suspicious"
 
     print("=" * 60)
     print("REAL DATA EXPLORER — LABELING HELPER")
