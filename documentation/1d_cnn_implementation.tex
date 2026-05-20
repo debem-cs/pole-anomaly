@@ -301,3 +301,13 @@ Each configuration generated a test dataset with 50 anomaly events using a fixed
     \caption{Model robustness under increasing noise (left) and shape deformation (right). Event accuracy (solid) and mean confidence (dashed) are shown. The model is substantially more sensitive to shape deformation than to background noise.}
     \label{fig:robustness}
 \end{figure}
+
+\subsection{Real-World Application (\texttt{inference\_real\_data.py})}
+Beyond evaluating the model on synthetic data, the repository implements a dedicated pipeline to apply the trained 1D-CNN directly to unlabelled real-world sensor streams (e.g., \texttt{2015\_months\_DebitDoseA.txt}).
+
+This script bridges the gap between the synthetic training environment and physical deployment:
+\begin{enumerate}
+    \item \textbf{Data Ingestion \& Cleaning:} It loads raw CSV sensor data, gracefully handling structural anomalies (such as malformed floating-point strings like \texttt{"97..3123"}) and interpolating missing NaN segments to maintain temporal continuity.
+    \item \textbf{Overlapping Inference:} It deploys the same dense overlapping sliding-window architecture (stride 10, window 512) and ensemble-averaging technique used in synthetic evaluation to scan the continuous, unlabelled physical signal.
+    \item \textbf{Diagnostic Visualization:} The script generates an interactive HTML dashboard stacking the raw physical sensor trace on top of a synchronized probability heatmap. This allows an engineer to scroll through months of raw sensor data and immediately spot points where the CNN's confidence spikes, effectively discovering anomalies in the wild that were previously hidden within the noise floor.
+\end{enumerate}
