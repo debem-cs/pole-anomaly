@@ -1,18 +1,18 @@
 ============================================================
 1D-CNN MULTI-CLASS INFERENCE LOG
-Timestamp: 2026-05-10 13:03:20
+Timestamp: 2026-05-20 15:26:49
 ============================================================
 
 Loading data...
 
 --- Dataset ---
 Total dataset size: 10,000,000 points
-Inference segment: 1,000,000 points
-True anomaly points in segment: 173,085
+Inference segment: 100,000 points
+True anomaly points in segment: 28,483
 Number of classes: 7
 Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'fast_ascend', 4: 'fast_descend', 5: 'M', 6: 'square'}
 
-Loaded training normalization stats: per-window centering, std=3.6978
+Loaded training normalization stats: per-window centering, std=3.9291
 
 --- Environment ---
 PyTorch Version: 2.12.0.dev20260408+cu128
@@ -27,830 +27,119 @@ Model: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\saved_models
 Model Parameters: 22,727
 
 Running inference...
-Inference completed in 0:01:10.331720
-Total windows processed: 99,949
-Windows per second: 1421
+Inference completed in 0:00:09.602863
+Total windows processed: 9,949
+Windows per second: 1036
 
 --- Detection Summary ---
-  Normal Background: 517718 windows detected (avg confidence: 72.68%)
-  bell: 79826 windows detected (avg confidence: 70.87%)
-  bell_sq: 83044 windows detected (avg confidence: 69.40%)
-  fast_ascend: 78338 windows detected (avg confidence: 74.39%)
-  fast_descend: 70744 windows detected (avg confidence: 73.73%)
-  M: 83796 windows detected (avg confidence: 69.98%)
-  square: 86526 windows detected (avg confidence: 74.98%)
+  Normal Background: 50174 windows detected (avg confidence: 58.60%)
+  bell: 10016 windows detected (avg confidence: 60.80%)
+  bell_sq: 8484 windows detected (avg confidence: 58.13%)
+  fast_ascend: 12114 windows detected (avg confidence: 68.58%)
+  fast_descend: 4770 windows detected (avg confidence: 70.46%)
+  M: 7494 windows detected (avg confidence: 59.95%)
+  square: 6940 windows detected (avg confidence: 69.56%)
 
 ================================================================================
 EVENT-LEVEL EVALUATION
 ================================================================================
 (Each contiguous anomaly region counts as one event)
-Total anomaly events in segment: 777
-Events with valid predictions: 777
+Total anomaly events in segment: 61
+Events with valid predictions: 61
 
 #    True Class           Predicted               Conf     Pts 
 ------------------------------------------------------------------
-1    bell_sq              bell_sq               89.5%     151 OK
-2    M                    M                     91.0%      93 OK
-3    fast_descend         fast_descend          91.9%     332 OK
-4    bell                 bell                  87.8%     384 OK
-5    fast_descend         fast_descend          35.1%     297 OK
-6    square               square                95.8%     118 OK
-7    bell                 bell                  83.9%     170 OK
-8    bell                 bell                  81.4%     174 OK
-9    fast_descend         fast_descend          94.0%     200 OK
-10   bell_sq              bell_sq               93.6%     158 OK
-11   fast_descend         fast_descend          95.6%     197 OK
-12   square               square                95.0%     241 OK
-13   bell                 bell                  92.7%     258 OK
-14   fast_ascend          fast_ascend           89.0%     152 OK
-15   bell_sq              bell_sq               90.0%     167 OK
-16   square               square                97.7%     173 OK
-17   bell                 bell                  94.0%     309 OK
-18   bell_sq              bell_sq               81.9%     305 OK
-19   bell_sq              bell_sq               86.0%     328 OK
-20   bell                 bell                  84.4%     296 OK
-21   bell_sq              bell_sq               88.7%     246 OK
-22   square               square                95.4%     136 OK
-23   fast_ascend          fast_ascend           96.9%     240 OK
-24   bell                 bell                  87.2%     275 OK
-25   bell                 bell                  90.2%     370 OK
-26   M                    M                     90.1%     282 OK
-27   bell                 bell                  90.9%     378 OK
-28   fast_ascend          fast_ascend           94.8%     271 OK
-29   square               square                98.0%     230 OK
-30   fast_descend         fast_descend          93.1%     315 OK
-31   M                    M                     92.5%     196 OK
-32   fast_ascend          fast_ascend           90.1%     351 OK
-33   fast_descend         fast_descend          88.9%     231 OK
-34   fast_ascend          fast_ascend           93.3%     143 OK
-35   bell_sq              bell_sq               89.7%     216 OK
-36   bell_sq              bell_sq               88.6%     224 OK
-37   bell_sq              bell_sq               89.9%     226 OK
-38   fast_ascend          fast_ascend           65.0%      74 OK
-39   square               square                97.1%     238 OK
-40   fast_ascend          fast_ascend           89.5%     226 OK
-41   square               square                95.4%     215 OK
-42   square               square                97.2%     142 OK
-43   square               square                98.7%     183 OK
-44   fast_ascend          fast_ascend           95.2%     235 OK
-45   M                    M                     89.4%     159 OK
-46   M                    M                     89.4%     164 OK
-47   square               square                97.6%      64 OK
-48   fast_descend         fast_descend          89.9%     268 OK
-49   bell_sq              bell_sq               84.3%     288 OK
-50   bell                 bell                  87.3%     191 OK
-51   fast_ascend          fast_ascend           91.1%     110 OK
-52   M                    M                     82.3%     363 OK
-53   fast_descend         fast_descend          94.6%     260 OK
-54   bell_sq              bell_sq               92.5%     139 OK
-55   bell_sq              bell_sq               89.5%     274 OK
-56   M                    M                     50.0%     385 OK
-57   bell_sq              bell_sq               87.2%     271 OK
-58   square               square                86.9%     308 OK
-59   fast_descend         fast_descend          94.7%     336 OK
-60   fast_ascend          fast_ascend           93.0%     230 OK
-61   square               square                90.4%     197 OK
-62   M                    M                     88.6%     139 OK
-63   fast_ascend          fast_ascend           94.7%     194 OK
-64   M                    M                     91.5%     316 OK
-65   fast_ascend          fast_ascend           92.0%      82 OK
-66   M                    M                     93.3%     263 OK
-67   square               square                95.9%     143 OK
-68   bell_sq              bell_sq               83.8%     389 OK
-69   square               square                97.3%     149 OK
-70   square               square                93.2%     306 OK
-71   square               square                95.6%     205 OK
-72   fast_ascend          fast_ascend           86.7%     355 OK
-73   bell_sq              bell_sq               89.7%     233 OK
-74   fast_ascend          fast_ascend           95.1%     282 OK
-75   bell                 bell                  86.5%     250 OK
-76   bell                 bell                  83.2%     135 OK
-77   square               square                96.0%     117 OK
-78   fast_descend         fast_descend          93.2%     326 OK
-79   bell_sq              bell_sq               88.8%     161 OK
-80   square               square                93.0%     318 OK
-81   bell_sq              fast_descend          42.3%      68 MISS
-82   bell                 bell                  86.6%     131 OK
-83   M                    M                     89.5%     377 OK
-84   fast_descend         fast_descend          97.3%     153 OK
-85   M                    M                     85.2%     390 OK
-86   square               square                99.4%     175 OK
-87   bell_sq              bell_sq               91.0%     212 OK
-88   M                    M                     93.0%     335 OK
-89   square               square                95.2%     179 OK
-90   bell_sq              bell_sq               76.3%     327 OK
-91   M                    M                     86.8%     298 OK
-92   fast_ascend          fast_ascend           93.1%     116 OK
-93   M                    M                     91.8%     100 OK
-94   square               square                90.7%     226 OK
-95   bell_sq              bell_sq               76.7%     395 OK
-96   fast_descend         fast_descend          91.6%     264 OK
-97   fast_ascend          fast_ascend           89.7%     336 OK
-98   fast_ascend          fast_ascend           92.6%     176 OK
-99   fast_ascend          fast_ascend           94.2%      72 OK
-100  M                    M                     91.0%     295 OK
-101  M                    M                     66.4%     260 OK
-102  bell                 bell                  86.0%     175 OK
-103  square               square                98.8%     184 OK
-104  bell_sq              bell_sq               87.9%     198 OK
-105  square               square                95.8%     138 OK
-106  fast_ascend          fast_ascend           90.4%     260 OK
-107  square               square                97.0%     224 OK
-108  square               square                96.0%     284 OK
-109  fast_ascend          fast_ascend           91.8%     202 OK
-110  fast_descend         fast_descend          82.8%     376 OK
-111  bell                 bell                  89.2%     104 OK
-112  fast_ascend          fast_ascend           92.8%      73 OK
-113  M                    M                     88.4%     195 OK
-114  square               square                96.0%     312 OK
-115  bell_sq              bell_sq               86.4%      89 OK
-116  bell_sq              bell_sq               91.5%     190 OK
-117  fast_descend         fast_descend          88.1%     369 OK
-118  square               square                86.0%     244 OK
-119  M                    M                     78.2%      88 OK
-120  bell                 bell                  88.9%     143 OK
-121  bell_sq              bell_sq               91.2%     155 OK
-122  fast_ascend          fast_ascend           96.1%     163 OK
-123  square               square                94.4%     342 OK
-124  M                    M                     91.4%     233 OK
-125  square               square                92.6%     137 OK
-126  fast_descend         fast_descend          90.4%     189 OK
-127  fast_descend         fast_descend          84.8%     351 OK
-128  fast_descend         fast_descend          95.4%     218 OK
-129  bell                 bell                  86.7%     145 OK
-130  M                    M                     94.6%     257 OK
-131  fast_descend         fast_descend          92.0%     115 OK
-132  bell_sq              bell_sq               87.6%     186 OK
-133  M                    M                     88.3%     355 OK
-134  square               M                     67.2%     217 MISS
-135  fast_descend         fast_descend          87.6%     288 OK
-136  fast_ascend          fast_ascend           94.0%     191 OK
-137  fast_ascend          fast_ascend           93.9%     336 OK
-138  square               square                95.4%     151 OK
-139  fast_descend         fast_descend          95.8%     255 OK
-140  M                    M                     90.0%      86 OK
-141  fast_ascend          fast_ascend           87.7%     318 OK
-142  fast_descend         fast_descend          58.8%     339 OK
-143  bell_sq              bell_sq               79.6%     287 OK
-144  M                    M                     91.0%     299 OK
-145  bell_sq              bell_sq               87.3%     238 OK
-146  bell                 bell                  95.7%     306 OK
-147  bell                 bell                  86.0%     169 OK
-148  fast_ascend          fast_ascend           93.2%     225 OK
-149  square               square                51.9%     372 OK
-150  M                    M                     90.1%      88 OK
-151  fast_descend         fast_descend          93.8%     288 OK
-152  fast_ascend          fast_ascend           87.0%     332 OK
-153  bell_sq              bell_sq               81.8%     277 OK
-154  M                    M                     91.7%     131 OK
-155  M                    M                     88.9%     207 OK
-156  bell                 bell_sq               43.5%     164 MISS
-157  square               square                97.2%     136 OK
-158  fast_descend         fast_descend          91.5%     149 OK
-159  fast_descend         fast_descend          94.7%      86 OK
-160  bell                 bell                  51.8%     176 OK
-161  square               square                86.7%     294 OK
-162  fast_ascend          fast_ascend           75.2%     291 OK
-163  bell_sq              bell_sq               88.0%     232 OK
-164  square               square                79.8%     182 OK
-165  fast_ascend          fast_ascend           92.2%     240 OK
-166  square               square                96.5%     102 OK
-167  bell                 bell                  93.3%     371 OK
-168  bell                 bell                  87.4%     238 OK
-169  M                    M                     93.0%     342 OK
-170  fast_ascend          fast_ascend           94.0%     151 OK
-171  fast_descend         fast_descend          92.4%      94 OK
-172  fast_ascend          fast_ascend           92.8%     138 OK
-173  bell                 bell                  89.5%     164 OK
-174  bell                 bell                  85.1%     177 OK
-175  M                    M                     89.2%     102 OK
-176  fast_descend         fast_descend          93.5%     198 OK
-177  bell                 bell                  79.6%     317 OK
-178  fast_descend         fast_descend          92.4%     206 OK
-179  bell                 bell                  93.6%     249 OK
-180  bell_sq              M                     59.6%     204 MISS
-181  fast_descend         fast_descend          87.3%     324 OK
-182  square               square                92.3%     237 OK
-183  bell                 bell                  84.7%     180 OK
-184  M                    M                     90.0%     193 OK
-185  bell                 bell                  92.0%     338 OK
-186  square               square                74.9%     211 OK
-187  M                    M                     78.9%     289 OK
-188  fast_ascend          fast_ascend           94.0%     181 OK
-189  M                    M                     87.5%     357 OK
-190  bell                 bell                  92.6%     332 OK
-191  fast_descend         fast_descend          94.6%     310 OK
-192  square               square                97.0%     228 OK
-193  square               square                93.1%     116 OK
-194  bell                 bell                  84.4%     176 OK
-195  M                    M                     88.8%     183 OK
-196  fast_descend         fast_descend          96.3%     168 OK
-197  M                    M                     88.3%     230 OK
-198  M                    M                     92.3%     309 OK
-199  square               square                82.9%     354 OK
-200  M                    M                     91.3%     240 OK
-201  M                    M                     90.9%     268 OK
-202  bell_sq              bell_sq               78.5%     207 OK
-203  M                    M                     88.4%     302 OK
-204  fast_ascend          fast_ascend           87.1%     323 OK
-205  bell_sq              bell_sq               73.6%     235 OK
-206  bell_sq              bell_sq               91.5%     140 OK
-207  fast_ascend          fast_ascend           94.2%     220 OK
-208  bell                 bell                  84.9%     167 OK
-209  fast_descend         fast_descend          87.2%     260 OK
-210  bell                 bell                  78.1%     187 OK
-211  bell_sq              bell_sq               90.2%     125 OK
-212  fast_ascend          fast_ascend           95.1%     289 OK
-213  fast_descend         fast_descend          85.7%     363 OK
-214  bell_sq              bell_sq               92.9%     181 OK
-215  square               square                94.3%     324 OK
-216  fast_ascend          fast_ascend           91.8%     115 OK
-217  fast_descend         fast_descend          86.0%     382 OK
-218  bell_sq              bell_sq               94.0%     127 OK
-219  bell_sq              bell_sq               84.4%     367 OK
-220  square               square                95.4%     178 OK
-221  M                    M                     90.6%     202 OK
-222  square               square                91.3%     134 OK
-223  square               square                96.4%      67 OK
-224  bell                 bell                  93.1%     278 OK
-225  M                    M                     88.2%     116 OK
-226  bell                 bell                  87.9%     278 OK
-227  bell_sq              bell_sq               82.3%     365 OK
-228  bell_sq              bell_sq               85.7%     237 OK
-229  fast_descend         fast_descend          91.6%     113 OK
-230  square               square                94.0%     148 OK
-231  bell_sq              bell_sq               88.1%     139 OK
-232  fast_ascend          fast_ascend           93.3%     147 OK
-233  bell_sq              bell_sq               93.0%     101 OK
-234  fast_ascend          fast_ascend           89.4%     111 OK
-235  bell                 bell                  90.1%     226 OK
-236  bell                 bell                  77.0%     101 OK
-237  M                    M                     87.9%     362 OK
-238  fast_descend         fast_descend          92.7%      80 OK
-239  bell                 bell                  88.7%     270 OK
-240  bell_sq              M                     65.8%     147 MISS
-241  square               square                98.3%     101 OK
-242  bell_sq              bell_sq               83.3%     239 OK
-243  square               square                98.7%     131 OK
-244  fast_ascend          fast_ascend           94.8%     272 OK
-245  bell_sq              bell_sq               77.4%     366 OK
-246  fast_ascend          fast_ascend           92.9%      94 OK
-247  M                    M                     86.5%     212 OK
-248  M                    M                     88.5%     261 OK
-249  fast_descend         fast_descend          91.8%     103 OK
-250  bell                 bell                  89.2%     373 OK
-251  fast_descend         fast_descend          94.5%     131 OK
-252  bell_sq              bell_sq               80.3%     204 OK
-253  fast_ascend          fast_ascend           94.0%     313 OK
-254  square               square                92.4%     310 OK
-255  fast_ascend          fast_ascend           93.1%     382 OK
-256  square               square                94.5%      59 OK
-257  M                    M                     82.3%     168 OK
-258  fast_descend         fast_descend          94.4%      82 OK
-259  bell_sq              bell_sq               88.7%     152 OK
-260  bell_sq              bell_sq               92.2%     256 OK
-261  bell_sq              bell_sq               93.1%     204 OK
-262  bell_sq              bell_sq               86.6%     210 OK
-263  fast_ascend          fast_ascend           94.3%     204 OK
-264  square               square                88.2%     123 OK
-265  bell                 bell                  80.4%     347 OK
-266  M                    M                     91.7%     173 OK
-267  fast_descend         fast_descend          88.8%     300 OK
-268  fast_ascend          fast_ascend           92.8%     209 OK
-269  square               square                93.4%      99 OK
-270  bell                 bell                  61.6%     148 OK
-271  fast_descend         fast_descend          93.0%      70 OK
-272  M                    M                     73.3%     385 OK
-273  bell_sq              bell_sq               86.0%     390 OK
-274  square               square                97.0%     230 OK
-275  bell                 bell                  80.3%     167 OK
-276  M                    M                     90.5%     379 OK
-277  fast_ascend          fast_ascend           94.5%     167 OK
-278  fast_descend         fast_descend          51.7%     245 OK
-279  fast_ascend          fast_ascend           94.9%     145 OK
-280  M                    M                     85.2%     331 OK
-281  fast_ascend          fast_ascend           91.1%     283 OK
-282  fast_descend         fast_descend          91.5%     375 OK
-283  bell_sq              bell_sq               83.8%     309 OK
-284  M                    M                     92.7%     329 OK
-285  bell                 bell                  71.8%     209 OK
-286  M                    M                     90.8%     153 OK
-287  square               square                95.3%     163 OK
-288  fast_ascend          fast_ascend           92.1%     222 OK
-289  bell                 bell                  90.9%     274 OK
-290  fast_ascend          fast_ascend           90.4%     333 OK
-291  square               square                97.1%     289 OK
-292  bell                 bell                  83.3%      89 OK
-293  fast_descend         fast_descend          94.3%      84 OK
-294  fast_descend         fast_descend          93.9%     161 OK
-295  bell_sq              bell_sq               88.5%     204 OK
-296  M                    M                     90.7%     269 OK
-297  bell_sq              bell_sq               79.5%     386 OK
-298  bell                 bell                  78.7%     113 OK
-299  M                    M                     89.6%     133 OK
-300  square               square                84.9%     156 OK
-301  bell_sq              bell_sq               85.1%     285 OK
-302  bell                 bell                  85.6%     130 OK
-303  bell_sq              bell_sq               72.1%     285 OK
-304  fast_ascend          fast_ascend           90.5%     278 OK
-305  M                    M                     92.4%     322 OK
-306  M                    M                     91.4%     163 OK
-307  bell_sq              bell_sq               94.8%     284 OK
-308  square               square                98.2%     149 OK
-309  bell                 bell                  81.7%     387 OK
-310  M                    M                     91.4%     331 OK
-311  square               square                98.8%      77 OK
-312  fast_ascend          fast_ascend           92.6%     239 OK
-313  fast_descend         fast_descend          90.8%     146 OK
-314  bell                 bell                  82.1%     146 OK
-315  bell                 bell                  87.3%     308 OK
-316  bell_sq              bell_sq               89.1%     210 OK
-317  square               square                94.8%     390 OK
-318  bell                 bell                  92.8%     282 OK
-319  square               square                85.7%     238 OK
-320  fast_ascend          fast_ascend           91.8%     180 OK
-321  M                    M                     83.2%     228 OK
-322  M                    M                     89.4%     303 OK
-323  bell_sq              bell_sq               92.8%     120 OK
-324  fast_descend         fast_descend          91.7%     202 OK
-325  square               square                94.6%     309 OK
-326  square               square                96.0%      90 OK
-327  square               square                97.3%     125 OK
-328  M                    M                     88.9%     348 OK
-329  bell                 bell                  88.2%     218 OK
-330  fast_descend         fast_descend          93.0%     111 OK
-331  bell_sq              bell_sq               91.6%     101 OK
-332  fast_ascend          fast_ascend           92.9%     103 OK
-333  M                    M                     90.9%     132 OK
-334  M                    M                     83.5%     396 OK
-335  fast_descend         fast_descend          91.7%     300 OK
-336  fast_descend         fast_descend          93.8%     227 OK
-337  bell_sq              bell_sq               92.3%     159 OK
-338  bell_sq              bell_sq               89.6%     198 OK
-339  square               square                92.2%     144 OK
-340  fast_descend         fast_descend          91.6%     301 OK
-341  M                    bell_sq               62.1%     177 MISS
-342  fast_ascend          fast_ascend           96.0%     190 OK
-343  fast_ascend          fast_ascend           94.0%     102 OK
-344  bell                 bell                  68.0%      81 OK
-345  bell_sq              bell_sq               92.1%     343 OK
-346  M                    M                     90.0%     355 OK
-347  bell                 bell                  92.8%     341 OK
-348  M                    M                     92.1%     154 OK
-349  fast_ascend          fast_ascend           95.0%      91 OK
-350  square               square                99.0%      81 OK
-351  M                    M                     87.7%     273 OK
-352  bell_sq              bell_sq               91.9%     274 OK
-353  square               square                96.2%     274 OK
-354  M                    M                     90.5%     150 OK
-355  square               square                97.9%     153 OK
-356  M                    M                     89.2%     274 OK
-357  square               square                97.5%      81 OK
-358  fast_descend         fast_descend          95.5%     105 OK
-359  bell_sq              bell_sq               89.3%     201 OK
-360  square               square                95.7%     121 OK
-361  M                    M                     90.0%     353 OK
-362  bell                 bell                  90.2%     356 OK
-363  bell                 bell                  91.8%     264 OK
-364  fast_descend         fast_descend          86.7%     222 OK
-365  bell                 bell                  86.3%     101 OK
-366  bell_sq              bell_sq               91.8%     148 OK
-367  bell                 bell                  85.8%     239 OK
-368  fast_descend         fast_descend          91.1%     164 OK
-369  fast_descend         fast_descend          90.9%      70 OK
-370  square               square                89.6%     159 OK
-371  M                    M                     85.8%     329 OK
-372  fast_descend         fast_descend          93.8%     137 OK
-373  M                    M                     85.2%     398 OK
-374  fast_descend         fast_descend          35.6%     356 OK
-375  fast_ascend          fast_ascend           93.1%     281 OK
-376  fast_ascend          fast_ascend           92.1%     251 OK
-377  bell                 bell                  84.6%     360 OK
-378  fast_descend         fast_descend          90.0%     123 OK
-379  fast_ascend          fast_ascend           94.5%     167 OK
-380  M                    M                     91.7%     303 OK
-381  fast_ascend          fast_ascend           95.7%     163 OK
-382  fast_ascend          fast_ascend           93.3%     163 OK
-383  fast_descend         fast_descend          88.7%     301 OK
-384  bell_sq              bell_sq               90.1%     196 OK
-385  bell                 bell                  86.4%     232 OK
-386  M                    M                     85.3%     368 OK
-387  square               square                95.5%     285 OK
-388  bell                 bell                  85.3%     332 OK
-389  bell_sq              bell_sq               89.0%     275 OK
-390  fast_descend         fast_descend          95.4%     112 OK
-391  square               square                96.2%     216 OK
-392  fast_descend         fast_descend          87.1%     305 OK
-393  bell_sq              bell_sq               89.3%     197 OK
-394  M                    M                     92.4%     295 OK
-395  bell                 bell                  92.8%     280 OK
-396  bell_sq              M                     72.0%     304 MISS
-397  square               square                92.5%     254 OK
-398  M                    M                     85.2%     315 OK
-399  bell                 bell                  90.6%     287 OK
-400  fast_ascend          fast_ascend           92.8%     134 OK
-401  bell_sq              bell_sq               89.9%     231 OK
-402  square               square                66.5%     298 OK
-403  square               square                96.3%     157 OK
-404  bell_sq              bell_sq               88.8%     366 OK
-405  fast_ascend          fast_ascend           90.0%     230 OK
-406  square               square                96.8%     231 OK
-407  M                    M                     90.3%     237 OK
-408  bell                 bell                  79.9%     369 OK
-409  bell_sq              bell_sq               86.0%     368 OK
-410  bell                 bell                  87.8%     180 OK
-411  fast_descend         fast_descend          92.7%     233 OK
-412  M                    M                     90.9%      79 OK
-413  bell_sq              bell_sq               73.9%     186 OK
-414  fast_ascend          fast_ascend           97.3%     142 OK
-415  M                    M                     49.7%      86 OK
-416  square               square                96.8%     182 OK
-417  bell                 bell                  83.3%     209 OK
-418  bell_sq              bell_sq               91.4%     109 OK
-419  M                    M                     89.2%      96 OK
-420  square               square                97.5%     104 OK
-421  fast_descend         fast_descend          90.4%     134 OK
-422  square               square                96.5%     293 OK
-423  fast_descend         fast_descend          93.8%     266 OK
-424  fast_ascend          fast_ascend           91.0%     118 OK
-425  bell_sq              bell_sq               88.9%     246 OK
-426  bell_sq              bell_sq               90.2%     151 OK
-427  M                    M                     92.0%     389 OK
-428  fast_ascend          fast_ascend           89.6%     327 OK
-429  bell_sq              bell_sq               89.7%     170 OK
-430  square               square                97.4%     308 OK
-431  bell                 bell                  92.7%     297 OK
-432  bell                 bell                  86.9%     182 OK
-433  bell                 bell                  84.0%     250 OK
-434  fast_descend         fast_descend          89.8%     246 OK
-435  M                    M                     82.1%     374 OK
-436  fast_ascend          fast_ascend           90.8%      84 OK
-437  square               square                92.5%     179 OK
-438  bell                 bell                  90.5%     304 OK
-439  fast_descend         fast_descend          91.1%     275 OK
-440  square               square                97.4%      91 OK
-441  fast_descend         fast_descend          95.6%     134 OK
-442  square               square                97.0%     148 OK
-443  square               square                96.0%     102 OK
-444  fast_ascend          fast_ascend           93.1%     301 OK
-445  M                    M                     91.7%     285 OK
-446  fast_descend         fast_descend          88.2%     308 OK
-447  bell_sq              bell_sq               84.6%     346 OK
-448  fast_ascend          fast_ascend           95.3%     330 OK
-449  M                    M                     88.7%     393 OK
-450  fast_ascend          fast_ascend           85.4%     355 OK
-451  fast_ascend          fast_ascend           55.0%     324 OK
-452  fast_descend         fast_descend          89.1%     258 OK
-453  fast_descend         fast_descend          93.5%     191 OK
-454  square               square                92.6%     140 OK
-455  M                    M                     89.4%     200 OK
-456  bell                 bell                  91.5%     345 OK
-457  bell                 bell                  93.5%     250 OK
-458  square               square                96.8%     106 OK
-459  fast_ascend          fast_ascend           93.3%     296 OK
-460  fast_ascend          fast_ascend           82.8%     354 OK
-461  bell_sq              bell_sq               84.2%     273 OK
-462  bell                 bell                  80.0%     221 OK
-463  square               square                96.8%     121 OK
-464  fast_ascend          fast_ascend           90.0%     124 OK
-465  fast_descend         fast_descend          87.7%     254 OK
-466  square               square                87.2%     309 OK
-467  M                    M                     92.7%     293 OK
-468  square               square                88.7%     196 OK
-469  bell_sq              bell_sq               91.5%      77 OK
-470  bell                 bell                  92.1%     214 OK
-471  fast_ascend          fast_ascend           83.4%     139 OK
-472  bell                 bell                  49.6%     136 OK
-473  bell                 bell                  83.7%      82 OK
-474  fast_descend         fast_descend          86.2%     182 OK
-475  M                    M                     88.6%     300 OK
-476  bell_sq              bell_sq               88.2%     271 OK
-477  bell                 bell                  92.4%     291 OK
-478  fast_ascend          fast_ascend           93.5%     359 OK
-479  fast_ascend          fast_ascend           86.5%     355 OK
-480  bell                 bell                  84.4%      95 OK
-481  bell                 bell                  90.5%     346 OK
-482  square               square                99.2%     124 OK
-483  M                    M                     88.6%     114 OK
-484  square               square                96.0%     331 OK
-485  fast_descend         fast_descend          82.7%     373 OK
-486  bell_sq              fast_descend          92.5%      98 MISS
-487  fast_ascend          fast_ascend           92.7%     147 OK
-488  fast_ascend          fast_ascend           92.9%     232 OK
-489  fast_ascend          fast_ascend           94.3%     238 OK
-490  fast_descend         fast_descend          91.6%     262 OK
-491  fast_descend         fast_descend          92.0%      78 OK
-492  square               square                94.2%     115 OK
-493  square               square                92.5%     305 OK
-494  bell_sq              bell_sq               91.3%     259 OK
-495  bell                 bell                  86.7%     192 OK
-496  fast_ascend          fast_ascend           93.6%      83 OK
-497  M                    M                     81.5%     336 OK
-498  bell                 bell                  88.1%     148 OK
-499  square               square                96.0%     206 OK
-500  bell_sq              bell_sq               91.3%     245 OK
-501  square               square                95.9%     168 OK
-502  bell                 bell                  76.9%      91 OK
-503  square               square                93.8%     142 OK
-504  fast_descend         fast_descend          93.5%     180 OK
-505  square               square                89.7%     342 OK
-506  bell                 bell                  88.2%     233 OK
-507  fast_descend         fast_descend          97.3%     117 OK
-508  bell_sq              bell_sq               89.7%     171 OK
-509  bell                 bell                  94.8%     353 OK
-510  square               square                96.6%     116 OK
-511  fast_ascend          fast_ascend           94.3%     174 OK
-512  square               square                95.8%     322 OK
-513  M                    M                     91.5%     233 OK
-514  square               square                89.3%     180 OK
-515  square               square                97.2%     147 OK
-516  bell_sq              bell_sq               82.1%     220 OK
-517  bell_sq              bell_sq               59.0%     101 OK
-518  fast_descend         fast_descend          89.6%     324 OK
-519  square               square                98.4%      78 OK
-520  square               square                92.6%     287 OK
-521  fast_ascend          fast_ascend           94.2%     154 OK
-522  fast_ascend          fast_ascend           89.2%     388 OK
-523  bell                 bell                  91.9%     363 OK
-524  fast_descend         fast_descend          90.8%     333 OK
-525  bell_sq              bell_sq               92.3%     143 OK
-526  fast_descend         fast_descend          92.8%     197 OK
-527  bell_sq              bell_sq               77.2%     348 OK
-528  fast_ascend          fast_ascend           87.5%     328 OK
-529  bell_sq              bell_sq               58.4%     316 OK
-530  M                    M                     86.2%     174 OK
-531  bell                 bell                  92.5%     317 OK
-532  bell_sq              bell_sq               88.9%     187 OK
-533  bell_sq              bell_sq               87.8%     268 OK
-534  fast_descend         fast_descend          86.0%     329 OK
-535  M                    M                     89.4%     288 OK
-536  bell_sq              bell_sq               88.2%     299 OK
-537  bell                 bell                  88.3%     390 OK
-538  fast_ascend          fast_ascend           92.3%     315 OK
-539  M                    M                     82.1%     366 OK
-540  bell                 bell                  90.7%     193 OK
-541  fast_ascend          fast_ascend           91.5%      90 OK
-542  bell                 bell                  88.1%     139 OK
-543  M                    M                     85.0%     244 OK
-544  M                    M                     91.4%     107 OK
-545  square               square                94.7%      97 OK
-546  fast_ascend          fast_ascend           90.5%     314 OK
-547  bell                 bell                  76.5%      80 OK
-548  bell                 bell                  92.7%     377 OK
-549  M                    M                     78.8%     229 OK
-550  bell                 bell                  84.6%     247 OK
-551  fast_descend         fast_descend          93.8%     278 OK
-552  bell                 bell                  87.8%     144 OK
-553  M                    M                     89.8%     223 OK
-554  fast_descend         fast_descend          93.7%     285 OK
-555  bell                 bell                  85.8%     148 OK
-556  square               square                96.2%     109 OK
-557  bell_sq              bell_sq               91.4%     129 OK
-558  square               square                85.3%     357 OK
-559  M                    M                     91.1%     185 OK
-560  bell_sq              bell_sq               72.0%     349 OK
-561  bell                 bell                  86.5%     389 OK
-562  fast_ascend          fast_ascend           91.7%     109 OK
-563  bell_sq              bell_sq               90.3%     157 OK
-564  M                    M                     88.6%     383 OK
-565  bell_sq              bell_sq               86.0%     219 OK
-566  square               bell_sq               43.1%     242 MISS
-567  square               square                96.1%     196 OK
-568  square               square                96.7%     144 OK
-569  fast_ascend          fast_ascend           94.2%     309 OK
-570  M                    M                     91.3%     183 OK
-571  bell_sq              bell_sq               84.0%     189 OK
-572  square               square                86.9%     168 OK
-573  fast_descend         fast_descend          91.4%     130 OK
-574  square               square                92.9%     385 OK
-575  fast_descend         fast_descend          92.2%      82 OK
-576  bell                 bell                  67.4%     170 OK
-577  fast_ascend          fast_ascend           95.0%      79 OK
-578  M                    M                     88.2%     203 OK
-579  square               square                97.1%     136 OK
-580  M                    M                     88.6%     305 OK
-581  fast_descend         fast_descend          93.8%      85 OK
-582  fast_ascend          fast_ascend           85.6%     211 OK
-583  bell_sq              bell_sq               83.3%     213 OK
-584  M                    M                     92.9%     243 OK
-585  bell_sq              bell_sq               90.1%     264 OK
-586  bell_sq              bell_sq               87.3%     310 OK
-587  bell_sq              bell_sq               84.9%     298 OK
-588  bell_sq              bell_sq               86.3%      70 OK
-589  fast_descend         fast_descend          88.9%     283 OK
-590  square               square                89.4%     390 OK
-591  bell_sq              bell_sq               90.7%     125 OK
-592  bell                 bell                  88.5%     221 OK
-593  fast_ascend          fast_ascend           94.0%     190 OK
-594  fast_descend         fast_descend          93.2%     103 OK
-595  M                    M                     88.6%     114 OK
-596  square               square                97.8%     255 OK
-597  bell                 bell                  91.1%     299 OK
-598  bell                 bell                  85.8%     345 OK
-599  bell_sq              bell_sq               91.2%     139 OK
-600  bell_sq              bell_sq               86.1%     325 OK
-601  bell                 bell                  90.6%     243 OK
-602  square               square                97.7%     191 OK
-603  fast_ascend          fast_ascend           91.4%     107 OK
-604  fast_ascend          fast_ascend           86.8%     212 OK
-605  fast_descend         fast_descend          93.0%     308 OK
-606  bell_sq              bell_sq               79.8%     327 OK
-607  bell_sq              bell_sq               87.7%     157 OK
-608  bell_sq              bell_sq               87.9%     304 OK
-609  square               square                80.8%     189 OK
-610  bell_sq              bell_sq               91.8%      93 OK
-611  bell                 bell                  90.1%     387 OK
-612  bell                 bell                  91.5%     265 OK
-613  fast_ascend          fast_ascend           88.9%     359 OK
-614  bell                 bell                  93.9%     382 OK
-615  fast_descend         fast_descend          88.0%     357 OK
-616  bell_sq              bell_sq               90.5%     126 OK
-617  bell                 bell                  80.4%     359 OK
-618  square               square                79.9%      71 OK
-619  M                    M                     90.0%     165 OK
-620  bell_sq              bell_sq               90.9%     159 OK
-621  square               square                95.5%     305 OK
-622  bell_sq              bell_sq               85.0%     346 OK
-623  bell                 bell                  85.5%     108 OK
-624  bell_sq              bell_sq               92.6%      98 OK
-625  M                    M                     88.4%     175 OK
-626  fast_ascend          fast_ascend           94.0%     228 OK
-627  square               square                96.6%      98 OK
-628  bell_sq              bell_sq               87.1%     252 OK
-629  fast_descend         fast_descend          91.6%     152 OK
-630  bell                 bell                  89.1%     127 OK
-631  M                    M                     83.3%     346 OK
-632  square               bell_sq               77.6%     233 MISS
-633  bell                 bell                  80.7%     140 OK
-634  square               square                90.4%     142 OK
-635  square               square                88.6%     181 OK
-636  M                    M                     90.0%     367 OK
-637  M                    M                     89.7%     282 OK
-638  M                    M                     90.0%     278 OK
-639  fast_descend         fast_descend          92.7%     218 OK
-640  bell_sq              bell_sq               93.5%     281 OK
-641  bell                 bell                  88.5%      91 OK
-642  bell                 bell                  95.5%     359 OK
-643  bell                 bell                  89.6%     289 OK
-644  fast_descend         fast_descend          69.5%      72 OK
-645  bell                 bell                  94.3%     311 OK
-646  bell                 bell                  78.3%     204 OK
-647  fast_ascend          fast_ascend           91.0%     130 OK
-648  square               square                92.6%     144 OK
-649  fast_descend         fast_descend          91.3%     150 OK
-650  square               square                95.7%     225 OK
-651  square               square                97.3%      51 OK
-652  bell                 bell                  91.8%     329 OK
-653  fast_descend         fast_descend          91.5%     235 OK
-654  fast_ascend          fast_ascend           59.1%      74 OK
-655  square               square                96.6%     224 OK
-656  fast_descend         fast_descend          92.5%     198 OK
-657  fast_descend         fast_descend          93.2%     244 OK
-658  bell_sq              bell_sq               90.5%     230 OK
-659  square               square                96.4%     213 OK
-660  bell_sq              bell_sq               87.6%     328 OK
-661  fast_ascend          fast_ascend           92.6%     231 OK
-662  bell_sq              bell_sq               89.1%     175 OK
-663  fast_ascend          fast_ascend           91.5%     276 OK
-664  bell_sq              bell_sq               90.3%     351 OK
-665  fast_ascend          fast_ascend           90.4%     261 OK
-666  bell_sq              bell_sq               89.8%     101 OK
-667  M                    M                     91.4%     370 OK
-668  M                    M                     89.8%     116 OK
-669  bell                 bell                  91.3%     301 OK
-670  square               square                96.1%      85 OK
-671  bell                 bell                  89.9%     188 OK
-672  bell                 bell                  87.7%     183 OK
-673  M                    M                     91.8%     264 OK
-674  square               square                92.1%     275 OK
-675  bell_sq              M                     63.0%     253 MISS
-676  bell                 bell                  90.7%     349 OK
-677  fast_descend         fast_descend          89.4%     315 OK
-678  M                    M                     84.7%     355 OK
-679  fast_descend         fast_descend          90.9%     315 OK
-680  bell                 bell                  89.9%     242 OK
-681  bell_sq              bell_sq               88.7%     311 OK
-682  fast_descend         fast_descend          94.8%     159 OK
-683  M                    M                     83.1%     172 OK
-684  bell_sq              bell_sq               92.5%      80 OK
-685  bell_sq              bell_sq               84.3%     295 OK
-686  bell_sq              bell_sq               84.8%     173 OK
-687  fast_ascend          fast_ascend           93.7%     305 OK
-688  bell                 bell                  89.7%     280 OK
-689  M                    M                     87.7%     311 OK
-690  fast_ascend          fast_ascend           92.1%     208 OK
-691  bell                 bell                  83.1%     187 OK
-692  bell                 bell                  89.1%     285 OK
-693  M                    M                     89.7%     131 OK
-694  bell                 bell                  86.5%     304 OK
-695  bell                 bell                  93.7%     384 OK
-696  M                    M                     88.9%     135 OK
-697  fast_descend         fast_descend          94.5%     107 OK
-698  fast_ascend          fast_ascend           93.1%     176 OK
-699  fast_descend         fast_descend          91.0%     117 OK
-700  fast_ascend          fast_ascend           91.8%     251 OK
-701  M                    M                     85.8%     324 OK
-702  square               square                92.2%     312 OK
-703  fast_ascend          fast_ascend           92.1%     103 OK
-704  fast_ascend          fast_ascend           84.0%     295 OK
-705  fast_ascend          fast_ascend           94.6%     231 OK
-706  bell_sq              bell_sq               92.5%     257 OK
-707  fast_descend         fast_descend          93.7%      98 OK
-708  bell_sq              bell_sq               84.8%     238 OK
-709  fast_ascend          fast_ascend           90.4%     241 OK
-710  square               square                97.2%      91 OK
-711  fast_ascend          fast_ascend           90.9%     333 OK
-712  bell_sq              bell_sq               82.9%     251 OK
-713  square               square                96.7%     242 OK
-714  fast_ascend          fast_ascend           90.7%     161 OK
-715  fast_ascend          bell                  35.3%     149 MISS
-716  bell_sq              bell_sq               92.3%     250 OK
-717  M                    M                     90.5%     213 OK
-718  fast_descend         fast_descend          93.1%     135 OK
-719  fast_descend         fast_descend          93.0%      94 OK
-720  fast_ascend          fast_ascend           91.3%     147 OK
-721  square               square                96.8%      72 OK
-722  fast_ascend          fast_ascend           92.9%     286 OK
-723  fast_descend         fast_descend          89.7%     180 OK
-724  fast_ascend          fast_ascend           93.4%     264 OK
-725  fast_ascend          fast_ascend           95.5%     148 OK
-726  fast_descend         bell_sq               50.1%     184 MISS
-727  fast_ascend          fast_ascend           90.0%     234 OK
-728  square               square                98.4%      80 OK
-729  fast_descend         fast_descend          90.6%     151 OK
-730  fast_descend         fast_descend          92.4%     233 OK
-731  fast_ascend          fast_ascend           92.8%      73 OK
-732  bell_sq              bell_sq               81.5%     260 OK
-733  fast_ascend          fast_ascend           96.7%     210 OK
-734  bell_sq              bell_sq               89.3%     188 OK
-735  square               square                97.2%     123 OK
-736  square               square                87.2%     262 OK
-737  fast_descend         fast_descend          91.8%     183 OK
-738  fast_ascend          fast_ascend           85.3%     254 OK
-739  fast_ascend          fast_ascend           92.1%     317 OK
-740  M                    M                     88.9%     345 OK
-741  bell                 bell                  85.0%      97 OK
-742  M                    M                     90.1%      98 OK
-743  bell                 bell                  87.1%     170 OK
-744  M                    M                     91.0%     111 OK
-745  square               square                84.4%     298 OK
-746  square               square                96.9%     153 OK
-747  square               square                97.1%     131 OK
-748  M                    M                     74.8%     182 OK
-749  fast_ascend          fast_ascend           90.9%      89 OK
-750  bell_sq              bell_sq               81.7%      85 OK
-751  fast_descend         fast_descend          95.5%     275 OK
-752  bell                 bell                  93.6%     315 OK
-753  fast_descend         fast_descend          93.1%      95 OK
-754  bell_sq              bell_sq               86.0%     281 OK
-755  square               square                97.7%     141 OK
-756  square               square                93.2%      78 OK
-757  M                    M                     79.4%     301 OK
-758  fast_ascend          fast_ascend           92.4%     260 OK
-759  fast_descend         fast_descend          95.2%     134 OK
-760  bell_sq              bell_sq               87.6%     242 OK
-761  fast_ascend          fast_ascend           93.0%     122 OK
-762  bell                 bell                  91.5%     222 OK
-763  M                    M                     91.9%     275 OK
-764  fast_descend         fast_descend          91.8%     150 OK
-765  square               square                92.2%     354 OK
-766  bell                 bell                  90.4%     390 OK
-767  fast_ascend          fast_ascend           90.6%     142 OK
-768  M                    M                     90.7%     234 OK
-769  fast_descend         fast_descend          91.0%     261 OK
-770  bell_sq              bell_sq               91.3%     130 OK
-771  fast_ascend          fast_ascend           51.6%     278 OK
-772  fast_descend         fast_descend          93.1%     380 OK
-773  fast_descend         fast_descend          82.1%     381 OK
-774  fast_ascend          fast_ascend           92.6%     270 OK
-775  fast_ascend          fast_ascend           89.7%     286 OK
-776  M                    M                     89.8%     154 OK
-777  M                    M                     85.2%     112 OK
+1    bell                 bell                  70.3%     294 OK
+2    M                    M                     82.7%     475 OK
+3    M                    M                     80.5%     327 OK
+4    bell_sq              bell_sq               70.7%     501 OK
+5    fast_ascend          fast_ascend           71.6%     687 OK
+6    fast_ascend          fast_ascend           89.9%     429 OK
+7    bell                 bell                  53.6%     259 OK
+8    fast_ascend          fast_ascend           73.4%     686 OK
+9    fast_ascend          fast_ascend           80.8%     306 OK
+10   fast_ascend          fast_ascend           75.0%     341 OK
+11   square               square                91.2%     715 OK
+12   M                    M                     63.3%     751 OK
+13   square               square                91.9%     222 OK
+14   fast_ascend          fast_ascend           79.7%     642 OK
+15   fast_ascend          fast_ascend           75.6%     342 OK
+16   bell                 bell                  70.5%     281 OK
+17   bell                 M                     40.9%     681 MISS
+18   bell                 bell                  69.5%     414 OK
+19   fast_ascend          fast_ascend           74.5%     590 OK
+20   square               square                93.0%     254 OK
+21   bell_sq              bell_sq               78.6%     308 OK
+22   fast_ascend          fast_ascend           88.8%     548 OK
+23   bell                 bell                  85.4%     753 OK
+24   bell                 bell                  68.5%     562 OK
+25   square               square                87.4%     207 OK
+26   bell_sq              bell_sq               75.9%     265 OK
+27   fast_ascend          fast_ascend           88.4%     401 OK
+28   square               square                51.0%     522 OK
+29   bell_sq              bell_sq               69.5%     616 OK
+30   square               square                92.5%     385 OK
+31   fast_descend         fast_descend          83.3%     750 OK
+32   M                    M                     81.2%     394 OK
+33   bell_sq              bell_sq               68.1%     497 OK
+34   fast_descend         fast_descend          74.7%     519 OK
+35   M                    M                     77.8%     253 OK
+36   bell                 bell                  72.8%     674 OK
+37   bell_sq              bell_sq               76.1%     579 OK
+38   square               square                84.3%     241 OK
+39   fast_descend         fast_descend          91.7%     306 OK
+40   bell                 bell                  74.2%     439 OK
+41   bell                 bell                  79.7%     445 OK
+42   bell                 bell                  82.4%     584 OK
+43   fast_ascend          fast_ascend           80.6%     630 OK
+44   M                    M                     80.2%     343 OK
+45   fast_descend         fast_descend          91.6%     377 OK
+46   fast_ascend          fast_ascend           84.5%     464 OK
+47   M                    M                     74.0%     560 OK
+48   fast_ascend          fast_ascend           80.0%     490 OK
+49   bell_sq              bell_sq               72.1%     247 OK
+50   fast_ascend          fast_ascend           74.9%     601 OK
+51   M                    M                     69.3%     243 OK
+52   fast_descend         fast_descend          75.0%     719 OK
+53   square               square                72.6%     514 OK
+54   bell                 bell                  68.7%     270 OK
+55   bell_sq              bell_sq               70.4%     474 OK
+56   square               square                95.0%     310 OK
+57   bell_sq              bell_sq               42.9%     788 OK
+58   bell_sq              bell_sq               81.1%     352 OK
+59   bell_sq              bell_sq               50.5%     635 OK
+60   M                    M                     64.1%     278 OK
+61   bell                 bell                  63.8%     743 OK
 
 --- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
                        bell    bell_sq fast_ascen fast_desce          M     square
 ----------------------------------------------------------------------------------
-            bell        127          1          0          0          0          0
-         bell_sq          0        130          0          2          4          0
-     fast_ascend          1          0        128          0          0          0
-    fast_descend          0          1          0        115          0          0
-               M          0          1          0          0        125          0
-          square          0          2          0          0          1        139
+            bell         12          0          0          0          1          0
+         bell_sq          0         11          0          0          0          0
+     fast_ascend          0          0         14          0          0          0
+    fast_descend          0          0          0          5          0          0
+               M          0          0          0          0          9          0
+          square          0          0          0          0          0          9
 
 --- Event-Level Summary ---
-Exact Classification: 764/777 (98.3%)
-Detection Rate (any anomaly): 777/777 (100.0%)
-Mean Confidence: 88.8%
+Exact Classification: 60/61 (98.4%)
+Detection Rate (any anomaly): 61/61 (100.0%)
+Mean Confidence: 75.8%
 
 Class                 Support     Prec   Recall       F1
 -------------------------------------------------------
-bell                      128   0.9922   0.9922   0.9922
-bell_sq                   136   0.9630   0.9559   0.9594
-fast_ascend               129   1.0000   0.9922   0.9961
-fast_descend              116   0.9829   0.9914   0.9871
-M                         126   0.9615   0.9921   0.9766
-square                    142   1.0000   0.9789   0.9893
+bell                       13   1.0000   0.9231   0.9600
+bell_sq                    11   1.0000   1.0000   1.0000
+fast_ascend                14   1.0000   1.0000   1.0000
+fast_descend                5   1.0000   1.0000   1.0000
+M                           9   0.9000   1.0000   0.9474
+square                      9   1.0000   1.0000   1.0000
 -------------------------------------------------------
-Macro Average                   0.9833   0.9838   0.9835
+Macro Average                   0.9833   0.9872   0.9846
 
 Generating Plotly graph...
+
+Visualization saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\cnn_inference_visualization.html
+Log saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\inference_log.txt
+
+============================================================

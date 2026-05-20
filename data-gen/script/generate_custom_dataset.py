@@ -12,49 +12,63 @@ sys.path.append(root_dir)
 
 from src.anomaly_generator import generate_anomaly
 
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                     CONFIGURATION — TUNE THESE PARAMETERS                  ║
+# ║                                                                            ║
+# ║  All generation parameters are collected here for easy experimentation.    ║
+# ║  Adjust these values to match the characteristics of your real-world data. ║
+# ║  Use `interactive_labeling_helper.py` to measure real anomaly properties.  ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+CONFIG = {
+    # --- Dataset Size ---
+    "TOTAL_POINTS":       10_000_000,   # Total length of the synthetic time series
+    "CHUNK_SIZE":         50_000,       # Points written per chunk (limits RAM usage)
+
+    # --- Number of Anomalies ---
+    "NUM_ANOMALIES_MIN":  5_000,        # Minimum number of anomalies injected
+    "NUM_ANOMALIES_MAX":  8_000,        # Maximum number of anomalies injected
+    "INJECT_JITTER":      200,          # Random jitter (±points) around evenly spaced injection sites
+
+    # --- Anomaly Shape Parameters ---
+    "AMPLITUDE_MIN":      2.5,          # Min anomaly amplitude as multiplier of background noise std
+    "AMPLITUDE_MAX":      7.6,          # Max anomaly amplitude as multiplier of background noise std
+    "PERIOD_MIN":         200,           # Minimum anomaly duration in time steps
+    "PERIOD_MAX":         800,          # Maximum anomaly duration in time steps
+    "VARIANCE_MIN":       0.02,         # Min shape variance (distortion applied to the template)
+    "VARIANCE_MAX":       0.06,         # Max shape variance (distortion applied to the template)
+    "ANOMALY_THRESHOLD":  1e-2,         # Min anomaly value to count as "anomalous" when labeling
+
+    # --- Background Noise Parameters (Based on 2015 Real Data Evaluation) ---
+    # The values below are the AVERAGES across all 4 datasets.
+    # If you want to simulate a specific dataset, replace with its values:
+    # 24/02/2015 -> MEAN: 96.93, STD: 2.31, THETA: 0.000004, SIGMA: 0.0277
+    # 30/04/2015 -> MEAN: 98.86, STD: 2.58, THETA: 0.000004, SIGMA: 0.0390
+    # 22/06/2015 -> MEAN: 101.28, STD: 2.51, THETA: 0.000004, SIGMA: 0.0337
+    # 20/10/2015 -> MEAN: 99.95, STD: 2.70, THETA: 0.000004, SIGMA: 0.0485
+    "BACKGROUND_MEAN":    99.26,        # Mean gamma dose level
+    "BACKGROUND_STD":     2.53,         # High-frequency Gaussian noise std
+    "BASELINE_THETA":     0.000004,     # OU process mean-reversion rate
+    "BASELINE_SIGMA":     0.0373,       # OU process volatility
+
+    # --- Visualization ---
+    "PLOT_PREVIEW_LIMIT": 100_000,      # Max points in the preview plot
+}
+
 def create_synthetic_dataset():
     data_dir = os.path.join(root_dir, 'data')
     logs_dir = os.path.join(root_dir, 'logs')
     os.makedirs(logs_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
     
-    # 1. Evaluate REAL background characteristics
-    filename = os.path.join(root_dir, 'data', '2015_months_DebitDoseA.txt')
-    try:
-        data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
-        mois = 3 
-        real_background = data_gamma[:, mois]
-        
-        # Clean boundaries and remove NaNs
-        Nh = 400
-        real_background = real_background[Nh:-Nh]
-        real_background = real_background[~np.isnan(real_background)]
-        
-        global_mean = np.mean(real_background)
-        
-        # Isolate baseline using a moving average
-        window_size = 480
-        kernel = np.ones(window_size) / window_size
-        baseline = np.convolve(real_background, kernel, mode='valid')
-        
-        # Calculate high-frequency noise from residuals
-        hf_residual = real_background[window_size//2 : -window_size//2 + 1] - baseline
-        std_noise = np.std(hf_residual)
-        
-        # Baseline OU parameters
-        baseline_diffs = np.diff(baseline)
-        sigma = np.std(baseline_diffs)
-        # Empirical low reversion rate from analysis
-        theta = 0.000004 
-        
-        print(f"Sensor noise characteristics -> Global Mean: {global_mean:.2f}, HF Noise Std: {std_noise:.2f}")
-        print(f"Baseline characteristics -> Theta: {theta:.6f}, Sigma: {sigma:.6f}")
-    except FileNotFoundError:
-        print(f"Error: Could not find {filename}. Using default noise estimates.")
-        global_mean = 100.0
-        std_noise = 2.55
-        theta = 0.000004
-        sigma = 0.010
+    global_mean = CONFIG["BACKGROUND_MEAN"]
+    std_noise = CONFIG["BACKGROUND_STD"]
+    theta = CONFIG["BASELINE_THETA"]
+    sigma = CONFIG["BASELINE_SIGMA"]
+
+    print(f"Sensor noise characteristics -> Global Mean: {global_mean:.2f}, HF Noise Std: {std_noise:.2f}")
+    print(f"Baseline characteristics -> Theta: {theta:.6f}, Sigma: {sigma:.6f}")
+
 
     # 2. Load Custom Templates
     anomalies_dir = os.path.join(root_dir, 'anomalies')
@@ -78,13 +92,13 @@ def create_synthetic_dataset():
             f.write(f"{cls_id}: {name}\n")
 
     # 3. Configuration
-    N_synthetic = 10000000
-    CHUNK_SIZE = 50000  # Process this many points at a time to limit RAM usage
-    num_anomalies = np.random.randint(5000, 8000)
+    N_synthetic = CONFIG["TOTAL_POINTS"]
+    CHUNK_SIZE = CONFIG["CHUNK_SIZE"]
+    num_anomalies = np.random.randint(CONFIG["NUM_ANOMALIES_MIN"], CONFIG["NUM_ANOMALIES_MAX"])
     
     # Pre-compute all anomaly injection points and their shapes
     spacing = N_synthetic // (num_anomalies + 1)
-    inject_points = [spacing * i + np.random.randint(-200, 200) for i in range(1, num_anomalies + 1)]
+    inject_points = [spacing * i + np.random.randint(-CONFIG["INJECT_JITTER"], CONFIG["INJECT_JITTER"]) for i in range(1, num_anomalies + 1)]
     
     print(f"Injecting {num_anomalies} isolated custom spikes across {N_synthetic} time steps...")
     print(f"Writing in chunks of {CHUNK_SIZE} to limit RAM usage...")
@@ -95,9 +109,9 @@ def create_synthetic_dataset():
         chosen_template_name = np.random.choice(template_names)
         df_template = loaded_templates[chosen_template_name]
         
-        target_amplitude = std_noise * np.random.uniform(3.0, 7.6)
-        target_period = np.random.randint(80, 400)
-        variance_level = np.random.uniform(0.02, 0.06)
+        target_amplitude = std_noise * np.random.uniform(CONFIG["AMPLITUDE_MIN"], CONFIG["AMPLITUDE_MAX"])
+        target_period = np.random.randint(CONFIG["PERIOD_MIN"], CONFIG["PERIOD_MAX"])
+        variance_level = np.random.uniform(CONFIG["VARIANCE_MIN"], CONFIG["VARIANCE_MAX"])
 
         t_discrete, v_discrete = generate_anomaly(
             df_template, 
@@ -117,7 +131,7 @@ def create_synthetic_dataset():
     output_csv_path = os.path.join(data_dir, 'synthetic_custom_dataset.csv')
     
     # Collect a small preview segment for plotting (first 100k points max)
-    plot_limit = min(100000, N_synthetic)
+    plot_limit = min(CONFIG["PLOT_PREVIEW_LIMIT"], N_synthetic)
     plot_time = []
     plot_gamma = []
     plot_anomaly_vals = []
@@ -175,7 +189,7 @@ def create_synthetic_dataset():
                     chunk_background[local_idx] += v
                     chunk_pure_anomalies[local_idx] += v
                     
-                    if v > 1e-2:
+                    if v > CONFIG["ANOMALY_THRESHOLD"]:
                         chunk_labels[local_idx] = anom['class_id']
                         chunk_classes_text[local_idx] = f"Anomaly: {anom['template_name'].capitalize()}"
             
