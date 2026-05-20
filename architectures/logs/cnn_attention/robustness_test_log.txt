@@ -1,0 +1,61 @@
+======================================================================
+CNN+Attention ROBUSTNESS TEST
+Timestamp: 2026-05-20 21:56:26
+======================================================================
+
+Baseline noise std: 2.7033
+Global mean: 99.95
+Templates loaded: ['bell', 'bell_sq', 'fast_ascend', 'fast_descend', 'M', 'square']
+Class mapping: {'bell': 1, 'bell_sq': 2, 'fast_ascend': 3, 'fast_descend': 4, 'M': 5, 'square': 6}
+Number of classes: 7
+Device: cuda
+Training std: 3.9291
+
+======================================================================
+SWEEP 1: BACKGROUND NOISE INTENSITY
+(deformation held at baseline variance = 0.04)
+======================================================================
+
+Noise Mult.    Events    Macro F1    
+-------------------------------------
+1.00           50        91.4%       
+1.22           50        94.1%       
+1.44           50        86.8%       
+1.67           50        82.4%       
+1.89           50        73.7%       
+2.11           50        67.7%       
+2.33           50        62.7%       
+2.56           50        59.0%       
+2.78           50        45.1%       
+3.00           50        52.0%       
+
+======================================================================
+SWEEP 2: ANOMALY SHAPE DEFORMATION
+(noise held at baseline multiplier = 1.0)
+======================================================================
+
+Deform Mult.   Events    Macro F1    
+-------------------------------------
+1.00           50        91.4%       
+1.78           50        91.5%       
+2.56           50        79.3%       
+3.33           50        72.6%       
+4.11           50        62.4%       
+4.89           52        46.0%       
+5.67           51        58.6%       
+6.44           51        33.4%       
+7.22           52        22.7%       
+8.00           50        34.6%       
+
+======================================================================
+SUMMARY
+======================================================================
+Noise: F1 Score first drops below 50% at multiplier = 2.8x
+Deformation: F1 Score first drops below 50% at multiplier = 4.9x
+
+Generating robustness chart...
+Chart saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\robustness_test.html
+PNG saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\robustness_test.png
+
+Log saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\robustness_test_log.txt
+======================================================================

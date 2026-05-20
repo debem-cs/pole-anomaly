@@ -1,0 +1,146 @@
+============================================================
+1D-CNN MULTI-CLASS INFERENCE LOG
+Timestamp: 2026-05-20 21:55:47
+============================================================
+
+Loading data...
+
+--- Dataset ---
+Total dataset size: 10,000,000 points
+Inference segment: 100,000 points
+True anomaly points in segment: 28,483
+Number of classes: 7
+Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'fast_ascend', 4: 'fast_descend', 5: 'M', 6: 'square'}
+
+Loaded training normalization stats: per-window centering, std=3.9291
+
+--- Environment ---
+PyTorch Version: 2.12.0.dev20260408+cu128
+Device: cuda
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU
+
+--- Inference Parameters ---
+Model: 1D-CNN
+Window Size: 512
+Stride: 10
+Smoothing Window: 30
+Model path: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\saved_models\1d_cnn\best_1d_cnn.pth
+Model Parameters: 22,727
+
+Running inference...
+Inference completed in 0:00:07.199636
+Total windows processed: 9,949
+Windows per second: 1382
+
+--- Detection Summary ---
+  Normal Background: 50674 windows detected (avg confidence: 57.59%)
+  bell: 10304 windows detected (avg confidence: 56.22%)
+  bell_sq: 8362 windows detected (avg confidence: 55.60%)
+  fast_ascend: 11676 windows detected (avg confidence: 66.90%)
+  fast_descend: 4766 windows detected (avg confidence: 69.98%)
+  M: 7474 windows detected (avg confidence: 58.51%)
+  square: 6736 windows detected (avg confidence: 67.31%)
+
+================================================================================
+EVENT-LEVEL EVALUATION
+================================================================================
+(Each contiguous anomaly region counts as one event)
+Total anomaly events in segment: 61
+Events with valid predictions: 61
+
+#    True Class           Predicted               Conf     Pts 
+------------------------------------------------------------------
+1    bell                 bell                  63.5%     294 OK
+2    M                    M                     81.3%     475 OK
+3    M                    M                     78.9%     327 OK
+4    bell_sq              bell_sq               62.8%     501 OK
+5    fast_ascend          fast_ascend           58.3%     687 OK
+6    fast_ascend          fast_ascend           89.8%     429 OK
+7    bell                 bell                  41.4%     259 OK
+8    fast_ascend          fast_ascend           73.5%     686 OK
+9    fast_ascend          fast_ascend           74.4%     306 OK
+10   fast_ascend          fast_ascend           70.8%     341 OK
+11   square               square                88.7%     715 OK
+12   M                    M                     62.9%     751 OK
+13   square               square                87.0%     222 OK
+14   fast_ascend          fast_ascend           72.8%     642 OK
+15   fast_ascend          fast_ascend           74.7%     342 OK
+16   bell                 bell                  64.4%     281 OK
+17   bell                 bell                  44.5%     681 OK
+18   bell                 bell                  65.1%     414 OK
+19   fast_ascend          fast_ascend           72.6%     590 OK
+20   square               square                89.3%     254 OK
+21   bell_sq              bell_sq               72.9%     308 OK
+22   fast_ascend          fast_ascend           87.1%     548 OK
+23   bell                 bell                  79.7%     753 OK
+24   bell                 bell                  67.9%     562 OK
+25   square               square                82.5%     207 OK
+26   bell_sq              bell_sq               65.7%     265 OK
+27   fast_ascend          fast_ascend           86.8%     401 OK
+28   square               square                49.5%     522 OK
+29   bell_sq              bell_sq               66.9%     616 OK
+30   square               square                89.5%     385 OK
+31   fast_descend         fast_descend          80.3%     750 OK
+32   M                    M                     81.2%     394 OK
+33   bell_sq              bell_sq               63.1%     497 OK
+34   fast_descend         fast_descend          74.4%     519 OK
+35   M                    M                     74.8%     253 OK
+36   bell                 bell                  66.5%     674 OK
+37   bell_sq              bell_sq               72.0%     579 OK
+38   square               square                79.7%     241 OK
+39   fast_descend         fast_descend          91.5%     306 OK
+40   bell                 bell                  63.6%     439 OK
+41   bell                 bell                  73.8%     445 OK
+42   bell                 bell                  78.5%     584 OK
+43   fast_ascend          fast_ascend           77.8%     630 OK
+44   M                    M                     77.5%     343 OK
+45   fast_descend         fast_descend          90.2%     377 OK
+46   fast_ascend          fast_ascend           82.6%     464 OK
+47   M                    M                     72.6%     560 OK
+48   fast_ascend          fast_ascend           76.9%     490 OK
+49   bell_sq              bell_sq               71.6%     247 OK
+50   fast_ascend          fast_ascend           71.0%     601 OK
+51   M                    M                     70.6%     243 OK
+52   fast_descend         fast_descend          76.9%     719 OK
+53   square               square                71.2%     514 OK
+54   bell                 bell                  60.2%     270 OK
+55   bell_sq              bell_sq               73.6%     474 OK
+56   square               square                93.5%     310 OK
+57   bell_sq              bell_sq               41.0%     788 OK
+58   bell_sq              bell_sq               75.4%     352 OK
+59   bell_sq              bell_sq               47.7%     635 OK
+60   M                    M                     66.2%     278 OK
+61   bell                 bell                  58.7%     743 OK
+
+--- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
+                       bell    bell_sq fast_ascen fast_desce          M     square
+----------------------------------------------------------------------------------
+            bell         13          0          0          0          0          0
+         bell_sq          0         11          0          0          0          0
+     fast_ascend          0          0         14          0          0          0
+    fast_descend          0          0          0          5          0          0
+               M          0          0          0          0          9          0
+          square          0          0          0          0          0          9
+
+--- Event-Level Summary ---
+Exact Classification: 61/61 (100.0%)
+Detection Rate (any anomaly): 61/61 (100.0%)
+Mean Confidence: 72.5%
+
+Class                 Support     Prec   Recall       F1
+-------------------------------------------------------
+bell                       13   1.0000   1.0000   1.0000
+bell_sq                    11   1.0000   1.0000   1.0000
+fast_ascend                14   1.0000   1.0000   1.0000
+fast_descend                5   1.0000   1.0000   1.0000
+M                           9   1.0000   1.0000   1.0000
+square                      9   1.0000   1.0000   1.0000
+-------------------------------------------------------
+Macro Average                   1.0000   1.0000   1.0000
+
+Generating Plotly graph...
+
+Visualization saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\1d_cnn\cnn_inference_visualization.html
+Log saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\1d_cnn\inference_log.txt
+
+============================================================

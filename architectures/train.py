@@ -114,10 +114,10 @@ def main():
 
     window_size = 512
     batch_size = 128
-    epochs = 150
-    learning_rate = 0.002
+    epochs = 35
+    learning_rate = 0.001
     patience = 4
-    min_delta = 0.004  # Minimum improvement to reset early stopping counter
+    min_delta = 0.001  # Minimum improvement to reset early stopping counter
 
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
 
