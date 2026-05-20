@@ -1,0 +1,98 @@
+============================================================
+1D-CNN MULTI-CLASS TRAINING LOG
+Timestamp: 2026-05-20 21:26:19
+============================================================
+
+--- Hyperparameters ---
+Model: 1D-CNN
+Window Size: 512
+Batch Size: 128
+Max Epochs: 150
+Learning Rate: 0.003
+Early Stopping Patience: 4
+Early Stopping Min Delta: 0.001
+Sliding Window Stride: 32
+LR Scheduler: ReduceLROnPlateau (patience=2, factor=0.5)
+Data Augmentation: None (randomness handled by data generator)
+Train/Test Split: Temporal (no data leakage)
+
+--- Environment ---
+PyTorch Version: 2.12.0.dev20260408+cu128
+Device: cuda
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU
+CUDA Version: 12.8
+
+Loading and preprocessing data...
+Normalization stats saved: per-window centering, global std=3.9291
+
+--- Dataset ---
+Training samples: 249985
+Test samples: 62485
+Number of classes: 7
+Input shape: (249985, 1, 512)
+
+--- Class Distribution (Training Set) ---
+  Normal Background (ID 0): 107534 samples (43.0%)
+  bell (ID 1): 24983 samples (10.0%)
+  bell_sq (ID 2): 23625 samples (9.5%)
+  fast_ascend (ID 3): 23742 samples (9.5%)
+  fast_descend (ID 4): 23713 samples (9.5%)
+  M (ID 5): 24231 samples (9.7%)
+  square (ID 6): 22157 samples (8.9%)
+
+--- Split ---
+Train: 199988 | Validation: 49997 | Test: 62485
+
+--- Model Architecture ---
+Total Parameters: 22,727
+Trainable Parameters: 22,727
+
+--- Class Weights ---
+Weights: [0.33 1.43 1.51 1.5  1.51 1.47 1.61]
+
+============================================================
+TRAINING
+============================================================
+Epoch    Train Loss     Val Loss       LR           Status
+--------------------------------------------------------------
+01/150   1.2450         0.9545         0.003000     * saved
+02/150   1.0714         0.8563         0.003000     * saved
+03/150   0.9994         0.8180         0.003000     * saved
+04/150   0.9550         0.7811         0.003000     * saved
+05/150   0.9287         0.7511         0.003000     * saved
+06/150   0.9042         0.7356         0.003000     * saved
+07/150   0.8861         0.7313         0.003000     * saved
+08/150   0.8749         0.7172         0.003000     * saved
+09/150   0.8616         0.6959         0.003000     * saved
+10/150   0.8535         0.7018         0.003000     patience 1/4
+11/150   0.8471         0.6912         0.003000     * saved
+12/150   0.8380         0.6738         0.003000     * saved
+13/150   0.8321         0.6752         0.003000     patience 1/4
+14/150   0.8281         0.6735         0.003000     patience 2/4
+15/150   0.8243         0.6743         0.003000     patience 3/4
+16/150   0.8245         0.6750         0.003000     EARLY STOP
+
+Training Duration: 0:01:50.968771
+Best Validation Loss: 0.6738
+
+============================================================
+TEST EVALUATION
+============================================================
+Test Loss: 0.6641
+Test Accuracy: 0.8159 (50982/62485)
+
+--- Per-Class Accuracy ---
+  Normal Background (ID 0): 0.9445 (25758/27273)
+  bell (ID 1): 0.6920 (3949/5707)
+  bell_sq (ID 2): 0.6340 (3919/6181)
+  fast_ascend (ID 3): 0.7292 (4045/5547)
+  fast_descend (ID 4): 0.7399 (4448/6012)
+  M (ID 5): 0.7564 (4319/5710)
+  square (ID 6): 0.7505 (4544/6055)
+
+Model saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\saved_models\1d_cnn\best_1d_cnn.pth
+Log saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\1d_cnn\training_log.txt
+Training curves saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\1d_cnn\training_curves.html
+Training curves PNG saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\1d_cnn\training_curves.png
+
+============================================================

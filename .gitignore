@@ -44,6 +44,6 @@ Thumbs.db
 *.vrb
 
 # Generated dataset
-*/data/*.csv
+**/data/*.csv
 
 /projet-S8

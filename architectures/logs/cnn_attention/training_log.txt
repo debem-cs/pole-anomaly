@@ -1,0 +1,120 @@
+============================================================
+CNN+Attention MULTI-CLASS TRAINING LOG
+Timestamp: 2026-05-20 21:28:48
+============================================================
+
+--- Hyperparameters ---
+Model: CNN+Attention
+Window Size: 512
+Batch Size: 128
+Max Epochs: 150
+Learning Rate: 0.002
+Early Stopping Patience: 4
+Early Stopping Min Delta: 0.001
+Sliding Window Stride: 32
+LR Scheduler: ReduceLROnPlateau (patience=2, factor=0.5)
+Data Augmentation: None (randomness handled by data generator)
+Train/Test Split: Temporal (no data leakage)
+
+--- Environment ---
+PyTorch Version: 2.12.0.dev20260408+cu128
+Device: cuda
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU
+CUDA Version: 12.8
+
+Loading and preprocessing data...
+Normalization stats saved: per-window centering, global std=3.9291
+
+--- Dataset ---
+Training samples: 249985
+Test samples: 62485
+Number of classes: 7
+Input shape: (249985, 1, 512)
+
+--- Class Distribution (Training Set) ---
+  Normal Background (ID 0): 107534 samples (43.0%)
+  bell (ID 1): 24983 samples (10.0%)
+  bell_sq (ID 2): 23625 samples (9.5%)
+  fast_ascend (ID 3): 23742 samples (9.5%)
+  fast_descend (ID 4): 23713 samples (9.5%)
+  M (ID 5): 24231 samples (9.7%)
+  square (ID 6): 22157 samples (8.9%)
+
+--- Split ---
+Train: 199988 | Validation: 49997 | Test: 62485
+
+--- Model Architecture ---
+Total Parameters: 109,655
+Trainable Parameters: 109,655
+
+--- Class Weights ---
+Weights: [0.33 1.43 1.51 1.5  1.51 1.47 1.61]
+
+============================================================
+TRAINING
+============================================================
+Epoch    Train Loss     Val Loss       LR           Status
+--------------------------------------------------------------
+01/150   0.8503         0.6690         0.002000     * saved
+02/150   0.6513         0.5904         0.002000     * saved
+03/150   0.6213         0.6260         0.002000     patience 1/4
+04/150   0.6038         0.5703         0.002000     * saved
+05/150   0.5909         0.5875         0.002000     patience 1/4
+06/150   0.5797         0.5693         0.002000     * saved
+07/150   0.5720         0.5548         0.002000     * saved
+08/150   0.5655         0.5648         0.002000     patience 1/4
+09/150   0.5609         0.5449         0.002000     * saved
+10/150   0.5549         0.5388         0.002000     * saved
+11/150   0.5479         0.5540         0.002000     patience 1/4
+12/150   0.5439         0.5536         0.002000     patience 2/4
+13/150   0.5391         0.5485         0.002000     patience 3/4
+14/150   0.5140         0.5221         0.001000     * saved
+15/150   0.5088         0.5224         0.001000     patience 1/4
+16/150   0.5053         0.5221         0.001000     patience 2/4
+17/150   0.5025         0.5125         0.001000     * saved
+18/150   0.4996         0.5146         0.001000     patience 1/4
+19/150   0.4959         0.5122         0.001000     patience 2/4
+20/150   0.4929         0.5146         0.001000     patience 3/4
+21/150   0.4908         0.5057         0.001000     * saved
+22/150   0.4866         0.5067         0.001000     patience 1/4
+23/150   0.4852         0.5047         0.001000     * saved
+24/150   0.4822         0.5112         0.001000     patience 1/4
+25/150   0.4792         0.5045         0.001000     patience 2/4
+26/150   0.4765         0.5029         0.001000     * saved
+27/150   0.4723         0.5093         0.001000     patience 1/4
+28/150   0.4710         0.5071         0.001000     patience 2/4
+29/150   0.4668         0.5057         0.001000     patience 3/4
+30/150   0.4482         0.4889         0.000500     * saved
+31/150   0.4444         0.4955         0.000500     patience 1/4
+32/150   0.4416         0.4977         0.000500     patience 2/4
+33/150   0.4381         0.4926         0.000500     patience 3/4
+34/150   0.4269         0.4879         0.000250     * saved
+35/150   0.4242         0.4886         0.000250     patience 1/4
+36/150   0.4225         0.4888         0.000250     patience 2/4
+37/150   0.4206         0.4907         0.000250     patience 3/4
+38/150   0.4141         0.4872         0.000125     EARLY STOP
+
+Training Duration: 0:09:19.318225
+Best Validation Loss: 0.4879
+
+============================================================
+TEST EVALUATION
+============================================================
+Test Loss: 0.5802
+Test Accuracy: 0.8283 (51757/62485)
+
+--- Per-Class Accuracy ---
+  Normal Background (ID 0): 0.8999 (24542/27273)
+  bell (ID 1): 0.7531 (4298/5707)
+  bell_sq (ID 2): 0.7280 (4500/6181)
+  fast_ascend (ID 3): 0.7790 (4321/5547)
+  fast_descend (ID 4): 0.7354 (4421/6012)
+  M (ID 5): 0.8266 (4720/5710)
+  square (ID 6): 0.8183 (4955/6055)
+
+Model saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\saved_models\cnn_attention\best_cnn_attention.pth
+Log saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\training_log.txt
+Training curves saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\training_curves.html
+Training curves PNG saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\training_curves.png
+
+============================================================
