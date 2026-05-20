@@ -167,6 +167,9 @@ def evaluate_on_dataset(df, model, device, train_std, num_classes, window_size=5
     detected = 0
     confidences = []
     
+    event_true = []
+    event_pred = []
+    
     for evt_start, evt_end, true_class in events:
         event_probs = probabilities[evt_start:evt_end]
         valid_mask = counts[evt_start:evt_end] > 0
@@ -177,6 +180,9 @@ def evaluate_on_dataset(df, model, device, train_std, num_classes, window_size=5
         avg_probs = np.mean(event_probs[valid_mask], axis=0)
         pred_class = int(np.argmax(avg_probs))
         confidence = float(avg_probs[pred_class])
+        
+        event_true.append(true_class)
+        event_pred.append(pred_class)
         
         if pred_class == true_class:
             correct += 1
@@ -189,7 +195,27 @@ def evaluate_on_dataset(df, model, device, train_std, num_classes, window_size=5
     det_rate = detected / total if total > 0 else 0.0
     mean_conf = np.mean(confidences) if confidences else 0.0
     
-    return event_acc, det_rate, mean_conf, total
+    # Calculate Event-Level Macro F1
+    event_true = np.array(event_true)
+    event_pred = np.array(event_pred)
+    
+    e_f1s = []
+    # Only calculate F1 over classes that actually appeared in the true labels
+    for c in sorted(set(event_true.tolist())):
+        if c == 0:
+            continue
+        tp = int(np.sum((event_pred == c) & (event_true == c)))
+        fp = int(np.sum((event_pred == c) & (event_true != c)))
+        fn = int(np.sum((event_pred != c) & (event_true == c)))
+        
+        prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+        e_f1s.append(f1)
+        
+    macro_f1 = np.mean(e_f1s) if e_f1s else 0.0
+    
+    return event_acc, det_rate, mean_conf, total, macro_f1
 
 
 # ─────────────────────────────────────────────
@@ -301,8 +327,8 @@ def main():
     log("SWEEP 1: BACKGROUND NOISE INTENSITY")
     log(f"(deformation held at baseline variance = {BASELINE_VARIANCE})")
     log(f"{'=' * 70}")
-    log(f"\n{'Noise Mult.':<14} {'Events':<9} {'Event Acc.':<12} {'Det. Rate':<12} {'Mean Conf.':<12}")
-    log("-" * 59)
+    log(f"\n{'Noise Mult.':<14} {'Events':<9} {'Macro F1':<12}")
+    log("-" * 37)
     
     noise_results = []
     for mult in noise_multipliers:
@@ -312,20 +338,20 @@ def main():
             num_anomalies=NUM_ANOMALIES, seed=12345
         )
         
-        acc, det, conf, n_events = evaluate_on_dataset(
+        acc, det, conf, n_events, f1 = evaluate_on_dataset(
             df_test, model, device, train_std, num_classes
         )
         
-        noise_results.append((mult, n_events, acc, det, conf))
-        log(f"{mult:<14.2f} {n_events:<9} {acc:<12.1%} {det:<12.1%} {conf:<12.1%}")
+        noise_results.append((mult, n_events, f1))
+        log(f"{mult:<14.2f} {n_events:<9} {f1:<12.1%}")
     
     # ── Sweep 2: Deformation ──
     log(f"\n{'=' * 70}")
     log("SWEEP 2: ANOMALY SHAPE DEFORMATION")
     log(f"(noise held at baseline multiplier = {BASELINE_NOISE_MULT})")
     log(f"{'=' * 70}")
-    log(f"\n{'Deform Mult.':<14} {'Events':<9} {'Event Acc.':<12} {'Det. Rate':<12} {'Mean Conf.':<12}")
-    log("-" * 59)
+    log(f"\n{'Deform Mult.':<14} {'Events':<9} {'Macro F1':<12}")
+    log("-" * 37)
     
     deform_results = []
     for mult in deform_multipliers:
@@ -336,38 +362,38 @@ def main():
             num_anomalies=NUM_ANOMALIES, seed=12345
         )
         
-        acc, det, conf, n_events = evaluate_on_dataset(
+        acc, det, conf, n_events, f1 = evaluate_on_dataset(
             df_test, model, device, train_std, num_classes
         )
         
-        deform_results.append((mult, n_events, acc, det, conf))
-        log(f"{mult:<14.2f} {n_events:<9} {acc:<12.1%} {det:<12.1%} {conf:<12.1%}")
+        deform_results.append((mult, n_events, f1))
+        log(f"{mult:<14.2f} {n_events:<9} {f1:<12.1%}")
     
     # ── Summary ──
     log(f"\n{'=' * 70}")
     log("SUMMARY")
     log(f"{'=' * 70}")
     
-    # Find thresholds where accuracy drops below 100%
+    # Find thresholds where F1 drops below a certain level (e.g. 50%)
     noise_threshold = None
-    for mult, _, acc, _, _ in noise_results:
-        if acc < 1.0 and noise_threshold is None:
+    for mult, _, f1 in noise_results:
+        if f1 < 0.5 and noise_threshold is None:
             noise_threshold = mult
     
     deform_threshold = None
-    for mult, _, acc, _, _ in deform_results:
-        if acc < 1.0 and deform_threshold is None:
+    for mult, _, f1 in deform_results:
+        if f1 < 0.5 and deform_threshold is None:
             deform_threshold = mult
     
     if noise_threshold:
-        log(f"Noise: accuracy first drops below 100% at multiplier = {noise_threshold:.1f}x")
+        log(f"Noise: F1 Score first drops below 50% at multiplier = {noise_threshold:.1f}x")
     else:
-        log("Noise: model maintained 100% accuracy across all tested multipliers")
+        log("Noise: model maintained >50% F1 Score across all tested multipliers")
     
     if deform_threshold:
-        log(f"Deformation: accuracy first drops below 100% at multiplier = {deform_threshold:.1f}x")
+        log(f"Deformation: F1 Score first drops below 50% at multiplier = {deform_threshold:.1f}x")
     else:
-        log("Deformation: model maintained 100% accuracy across all tested variance levels")
+        log("Deformation: model maintained >50% F1 Score across all tested variance levels")
     
     # ── Plot ──
     log("\nGenerating robustness chart...")
@@ -388,22 +414,11 @@ def main():
         x=[r[0] for r in noise_results],
         y=[r[2] * 100 for r in noise_results],
         mode='lines+markers',
-        name='Event Accuracy',
+        name='Macro F1 Score',
         line=dict(color='#FF6B6B', width=3),
         marker=dict(size=8),
         legendgroup='noise', legendgrouptitle_text='Noise Sweep',
-        hovertemplate='Noise ×%{x:.1f}<br>Accuracy: %{y:.1f}%<extra></extra>'
-    ), row=1, col=1)
-    
-    fig.add_trace(go.Scatter(
-        x=[r[0] for r in noise_results],
-        y=[r[4] * 100 for r in noise_results],
-        mode='lines+markers',
-        name='Mean Confidence',
-        line=dict(color='#FF6B6B', width=2, dash='dot'),
-        marker=dict(size=6),
-        legendgroup='noise',
-        hovertemplate='Noise ×%{x:.1f}<br>Confidence: %{y:.1f}%<extra></extra>'
+        hovertemplate='Noise ×%{x:.1f}<br>F1 Score: %{y:.1f}%<extra></extra>'
     ), row=1, col=1)
     
     # ── Right panel: Deformation sweep ──
@@ -411,27 +426,16 @@ def main():
         x=[r[0] for r in deform_results],
         y=[r[2] * 100 for r in deform_results],
         mode='lines+markers',
-        name='Event Accuracy',
+        name='Macro F1 Score',
         line=dict(color='#4ECDC4', width=3),
         marker=dict(size=8),
         legendgroup='deform', legendgrouptitle_text='Deformation Sweep',
-        hovertemplate='Deformation ×%{x:.1f}<br>Accuracy: %{y:.1f}%<extra></extra>'
-    ), row=1, col=2)
-    
-    fig.add_trace(go.Scatter(
-        x=[r[0] for r in deform_results],
-        y=[r[4] * 100 for r in deform_results],
-        mode='lines+markers',
-        name='Mean Confidence',
-        line=dict(color='#4ECDC4', width=2, dash='dot'),
-        marker=dict(size=6),
-        legendgroup='deform',
-        hovertemplate='Deformation ×%{x:.1f}<br>Confidence: %{y:.1f}%<extra></extra>'
+        hovertemplate='Deformation ×%{x:.1f}<br>F1 Score: %{y:.1f}%<extra></extra>'
     ), row=1, col=2)
     
     # ── Layout ──
     fig.update_layout(
-        title=dict(text='1D-CNN Robustness: Noise vs. Deformation Sensitivity', x=0.5),
+        title=dict(text='1D-CNN Robustness: F1 Score vs. Noise & Deformation', x=0.5),
         template='plotly_dark',
         height=500, width=1100,
         legend=dict(
@@ -443,7 +447,7 @@ def main():
     
     fig.update_xaxes(title_text=f'Noise Multiplier (×1 = {base_std_noise:.2f} std dev)', row=1, col=1)
     fig.update_xaxes(title_text=f'Deformation Multiplier (×1 = {BASELINE_VARIANCE} variance)', row=1, col=2)
-    fig.update_yaxes(title_text='Performance (%)', range=[0, 110], row=1, col=1)
+    fig.update_yaxes(title_text='F1 Score (%)', range=[0, 110], row=1, col=1)
     fig.update_yaxes(range=[0, 110], row=1, col=2)
     
     output_html = os.path.join(logs_dir, 'robustness_test.html')

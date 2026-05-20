@@ -1,6 +1,6 @@
 ======================================================================
 1D-CNN ROBUSTNESS TEST
-Timestamp: 2026-05-12 08:10:20
+Timestamp: 2026-05-20 17:39:51
 ======================================================================
 
 Baseline noise std: 2.7033
@@ -8,54 +8,54 @@ Global mean: 99.95
 Templates loaded: ['bell', 'bell_sq', 'fast_ascend', 'fast_descend', 'M', 'square']
 Class mapping: {'bell': 1, 'bell_sq': 2, 'fast_ascend': 3, 'fast_descend': 4, 'M': 5, 'square': 6}
 Number of classes: 7
-Device: cuda
-Training std: 3.6978
+Device: cpu
+Training std: 3.9291
 
 ======================================================================
 SWEEP 1: BACKGROUND NOISE INTENSITY
 (deformation held at baseline variance = 0.04)
 ======================================================================
 
-Noise Mult.    Events    Event Acc.   Det. Rate    Mean Conf.  
------------------------------------------------------------
-1.00           50        100.0%       100.0%       89.0%       
-1.22           50        96.0%        100.0%       84.7%       
-1.44           50        88.0%        100.0%       81.3%       
-1.67           50        74.0%        100.0%       74.6%       
-1.89           50        62.0%        100.0%       71.5%       
-2.11           50        48.0%        100.0%       72.6%       
-2.33           50        36.0%        100.0%       68.2%       
-2.56           50        32.0%        100.0%       68.8%       
-2.78           50        26.0%        100.0%       69.5%       
-3.00           50        30.0%        100.0%       70.5%       
+Noise Mult.    Events    Macro F1    
+-------------------------------------
+1.00           50        96.0%       
+1.22           50        90.2%       
+1.44           50        79.6%       
+1.67           50        63.5%       
+1.89           50        36.1%       
+2.11           50        19.4%       
+2.33           50        13.8%       
+2.56           50        6.6%        
+2.78           50        10.3%       
+3.00           50        6.5%        
 
 ======================================================================
 SWEEP 2: ANOMALY SHAPE DEFORMATION
 (noise held at baseline multiplier = 1.0)
 ======================================================================
 
-Deform Mult.   Events    Event Acc.   Det. Rate    Mean Conf.  
------------------------------------------------------------
-1.00           50        100.0%       100.0%       89.1%       
-1.78           50        98.0%        100.0%       84.3%       
-2.56           50        76.0%        100.0%       78.6%       
-3.33           50        56.0%        100.0%       72.4%       
-4.11           50        54.0%        100.0%       76.3%       
-4.89           50        38.0%        100.0%       71.0%       
-5.67           50        34.0%        100.0%       67.9%       
-6.44           52        21.2%        100.0%       72.7%       
-7.22           51        39.2%        100.0%       69.5%       
-8.00           50        22.0%        100.0%       71.4%       
+Deform Mult.   Events    Macro F1    
+-------------------------------------
+1.00           50        96.1%       
+1.78           50        93.9%       
+2.56           50        77.7%       
+3.33           50        64.6%       
+4.11           50        59.2%       
+4.89           50        46.6%       
+5.67           50        47.0%       
+6.44           50        31.8%       
+7.22           50        22.5%       
+8.00           51        18.0%       
 
 ======================================================================
 SUMMARY
 ======================================================================
-Noise: accuracy first drops below 100% at multiplier = 1.2x
-Deformation: accuracy first drops below 100% at multiplier = 1.8x
+Noise: F1 Score first drops below 50% at multiplier = 1.9x
+Deformation: F1 Score first drops below 50% at multiplier = 4.9x
 
 Generating robustness chart...
-Chart saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\robustness_test.html
-PNG saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\robustness_test.png
+Chart saved to: C:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\robustness_test.html
+PNG saved to: C:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\robustness_test.png
 
-Log saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\robustness_test_log.txt
+Log saved to: C:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\logs\robustness_test_log.txt
 ======================================================================

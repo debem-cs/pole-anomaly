@@ -45,3 +45,5 @@ Thumbs.db
 
 # Generated dataset
 */data/*.csv
+
+/projet-S8

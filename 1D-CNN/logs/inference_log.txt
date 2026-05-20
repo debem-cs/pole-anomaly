@@ -1,6 +1,6 @@
 ============================================================
 1D-CNN MULTI-CLASS INFERENCE LOG
-Timestamp: 2026-05-20 15:26:49
+Timestamp: 2026-05-20 17:17:57
 ============================================================
 
 Loading data...
@@ -27,9 +27,9 @@ Model: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\1D-CNN\saved_models
 Model Parameters: 22,727
 
 Running inference...
-Inference completed in 0:00:09.602863
+Inference completed in 0:00:11.257743
 Total windows processed: 9,949
-Windows per second: 1036
+Windows per second: 884
 
 --- Detection Summary ---
   Normal Background: 50174 windows detected (avg confidence: 58.60%)
