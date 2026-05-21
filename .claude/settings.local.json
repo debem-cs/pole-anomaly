@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pdflatex -interaction=nonstopmode -halt-on-error project_overview.tex)",
+      "Bash(pdflatex -interaction=nonstopmode project_overview.tex)",
+      "Bash(python affichage_donnees.py)",
+      "Bash(py affichage_donnees.py)"
+    ]
+  }
+}

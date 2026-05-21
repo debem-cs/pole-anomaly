@@ -1,0 +1,22 @@
+\section{Inference and Evaluation Methodology}
+
+Anomaly detection models on time series data face a fundamental discrepancy between how they are \textit{trained} and how their real-world performance is \textit{evaluated}. This project employs two distinct evaluation paradigms: Window-Level Evaluation (used strictly during training) and Event-Level Evaluation (used during inference and robustness testing).
+
+\subsection{Window-Level Evaluation (Training Script)}
+During training (e.g., in \texttt{train.py}), the continuous time series is sliced into thousands of overlapping windows of a fixed size (e.g., 512 points). A window is labeled as an anomaly if anomalous points occupy more than a strict threshold (e.g., $10\%$) of the window's span.
+
+\textbf{F1 Score Penalty:} 
+Because the dataset relies on sliding windows, many generated windows capture only the extreme edges of an anomaly (e.g., $85\%$ background noise and $15\%$ anomaly curve). These "boundary" windows are highly ambiguous and often misclassified by the network. During training, the Macro F1 score evaluates each window independently. Consequently, the F1 score appears artificially deflated because the network is heavily penalized for hesitating on these blurry edges, especially under severe class imbalance conditions.
+
+\subsection{Event-Level Evaluation (Inference Script)}
+To provide a more practical and realistic assessment of model performance, the inference scripts (such as \texttt{visualize\_inference.py} and \texttt{robustness\_test.py}) employ Event-Level Evaluation.
+
+\textbf{Methodology:}
+\begin{enumerate}
+    \item \textbf{Accumulation:} As the sliding window passes over the continuous data, the model predicts the probabilities for each window. Since the windows overlap (stride of 10), each individual time step receives multiple probability predictions. These predictions are accumulated and averaged, creating a smoothed, continuous probability curve for the entire dataset.
+    \item \textbf{Event Grouping:} Instead of judging rigid windows, the script groups contiguous ground-truth anomaly points into a single discrete "event." 
+    \item \textbf{Scoring:} An event is considered successfully detected and correctly classified if the averaged prediction curve peaks at the correct class at any point during the event's duration.
+\end{enumerate}
+
+\textbf{Impact on Metrics:}
+By grouping points into events, the model is no longer penalized for boundary ambiguity. As long as the network's confidence correctly identifies the anomaly at its core/peak, the entire event is counted as a success. This leads to near $100\%$ accuracy in inference, accurately reflecting the model's practical utility despite the deflated window-level F1 scores seen during training.

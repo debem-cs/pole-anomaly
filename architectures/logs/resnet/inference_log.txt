@@ -1,0 +1,150 @@
+============================================================
+ResNet 1D MULTI-CLASS INFERENCE LOG
+Timestamp: 2026-05-21 23:28:32
+============================================================
+
+Loading data...
+
+--- Dataset ---
+Total dataset size: 10,000,000 points
+Inference segment: 100,000 points
+True anomaly points in segment: 29,462
+Number of classes: 7
+Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'fast_ascend', 4: 'fast_descend', 5: 'M', 6: 'square'}
+
+Loaded training normalization stats: per-window centering, std=4.2136
+
+--- Environment ---
+PyTorch Version: 2.12.0.dev20260408+cu128
+Device: cuda
+GPU: NVIDIA GeForce RTX 5060 Laptop GPU
+
+--- Inference Parameters ---
+Model: ResNet 1D
+Window Size: 512
+Stride: 10
+Smoothing Window: 30
+Model path: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\saved_models\resnet\best_resnet.pth
+Model Parameters: 74,631
+
+Running inference...
+Inference completed in 0:00:16.414798
+Total windows processed: 9,949
+Windows per second: 606
+
+--- Detection Summary ---
+  Normal Background: 51126 windows detected (avg confidence: 62.14%)
+  bell: 9044 windows detected (avg confidence: 66.14%)
+  bell_sq: 10000 windows detected (avg confidence: 67.83%)
+  fast_ascend: 9036 windows detected (avg confidence: 70.63%)
+  fast_descend: 5738 windows detected (avg confidence: 74.70%)
+  M: 6416 windows detected (avg confidence: 66.86%)
+  square: 8632 windows detected (avg confidence: 69.47%)
+
+================================================================================
+EVENT-LEVEL EVALUATION
+================================================================================
+(Each contiguous anomaly region counts as one event)
+Total anomaly events in segment: 59
+Events with valid predictions: 59
+
+#    True Class           Predicted               Conf     Pts 
+------------------------------------------------------------------
+1    M                    M                     88.8%     263 OK
+2    bell                 bell                  53.6%     518 OK
+3    fast_ascend          fast_ascend           79.7%     552 OK
+4    bell_sq              bell_sq               80.8%     602 OK
+5    M                    M                     61.7%     766 OK
+6    square               square                74.9%     515 OK
+7    square               square                90.6%     469 OK
+8    square               square                76.8%     533 OK
+9    fast_ascend          fast_ascend           68.1%     480 OK
+10   square               square                89.9%     674 OK
+11   bell                 bell                  84.8%     462 OK
+12   fast_ascend          fast_ascend           80.2%     603 OK
+13   bell_sq              bell_sq               84.7%     419 OK
+14   M                    M                     83.7%     405 OK
+15   bell                 bell                  81.3%     776 OK
+16   square               square                82.3%     476 OK
+17   bell_sq              bell_sq               79.8%     547 OK
+18   M                    M                     89.7%     551 OK
+19   bell_sq              bell_sq               84.9%     464 OK
+20   bell_sq              bell_sq               85.4%     393 OK
+21   fast_ascend          fast_ascend           66.3%     753 OK
+22   fast_ascend          fast_ascend           92.2%     405 OK
+23   bell_sq              bell_sq               74.4%     523 OK
+24   bell_sq              bell_sq               76.1%     554 OK
+25   bell                 bell                  80.3%     754 OK
+26   bell_sq              bell_sq               86.2%     343 OK
+27   fast_ascend          fast_ascend           83.1%     690 OK
+28   M                    M                     83.8%     702 OK
+29   bell                 bell                  90.6%     730 OK
+30   square               square                94.4%     332 OK
+31   fast_descend         fast_descend          83.2%     452 OK
+32   fast_ascend          fast_ascend           81.2%     268 OK
+33   fast_descend         fast_descend          89.5%     608 OK
+34   bell                 bell                  70.7%     308 OK
+35   square               square                71.3%     191 OK
+36   square               square                85.1%     490 OK
+37   fast_ascend          fast_ascend           73.5%     580 OK
+38   bell_sq              bell_sq               82.4%     299 OK
+39   square               square                76.8%     593 OK
+40   bell                 bell                  80.8%     486 OK
+41   bell                 bell                  61.3%     294 OK
+42   fast_descend         fast_descend          81.5%     249 OK
+43   bell_sq              bell_sq               57.3%     734 OK
+44   M                    M                     78.3%     506 OK
+45   square               square                74.3%     624 OK
+46   fast_descend         fast_descend          86.8%     767 OK
+47   bell_sq              bell_sq               83.2%     209 OK
+48   fast_ascend          fast_ascend           89.3%     596 OK
+49   bell_sq              bell_sq               88.1%     297 OK
+50   bell                 bell                  89.7%     531 OK
+51   fast_descend         fast_descend          86.7%     270 OK
+52   bell                 bell                  78.2%     437 OK
+53   fast_ascend          fast_ascend           78.9%     613 OK
+54   bell_sq              bell_sq               91.2%     462 OK
+55   fast_ascend          fast_ascend           93.0%     338 OK
+56   M                    M                     88.2%     549 OK
+57   bell                 square                48.0%     748 MISS
+58   fast_descend         fast_descend          90.6%     379 OK
+59   fast_descend         fast_descend          97.8%     330 OK
+
+--- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
+                       bell    bell_sq fast_ascen fast_desce          M     square
+----------------------------------------------------------------------------------
+            bell         10          0          0          0          0          1
+         bell_sq          0         13          0          0          0          0
+     fast_ascend          0          0         11          0          0          0
+    fast_descend          0          0          0          7          0          0
+               M          0          0          0          0          7          0
+          square          0          0          0          0          0         10
+
+--- Event-Level Summary ---
+Exact Classification: 58/59 (98.3%)
+Detection Rate (any anomaly): 59/59 (100.0%)
+Mean Confidence: 80.8%
+
+Class                 Support     Prec   Recall       F1     Spec      FAR
+-------------------------------------------------------------------------
+bell                       11   1.0000   0.9091   0.9524   1.0000   0.0000
+bell_sq                    13   1.0000   1.0000   1.0000   1.0000   0.0000
+fast_ascend                11   1.0000   1.0000   1.0000   1.0000   0.0000
+fast_descend                7   1.0000   1.0000   1.0000   1.0000   0.0000
+M                           7   1.0000   1.0000   1.0000   1.0000   0.0000
+square                     10   0.9091   1.0000   0.9524   0.9796   0.0204
+-------------------------------------------------------------------------
+Macro Average                   0.9848   0.9848   0.9841   0.9966   0.0034
+
+Confusion matrix saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\confusion_matrix.png
+ROC curves saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\roc_curves.png
+
+Generating Inference Visualization plot...
+
+Visualization saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\cnn_inference_visualization.png
+
+Generating Plotly graph...
+Visualization saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\cnn_inference_visualization.html
+Log saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\inference_log.txt
+
+============================================================

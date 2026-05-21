@@ -1,0 +1,4 @@
+time,value,t_minus,t_plus,v_minus,v_plus,interp
+0.0,0.0,0,0,0,0,bell
+0.5,1.0,1,1,1,1,bell
+1.0,0.0,0,0,0,0,linear
