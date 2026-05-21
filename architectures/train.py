@@ -7,6 +7,10 @@ import numpy as np
 from datetime import datetime
 import pandas as pd
 import json
+from sklearn.metrics import f1_score
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from model_selection import AVAILABLE_MODELS, MODEL_DISPLAY_NAMES, get_model, select_model
 
@@ -116,8 +120,8 @@ def main():
     batch_size = 128
     epochs = 35
     learning_rate = 0.001
-    patience = 4
-    min_delta = 0.001  # Minimum improvement to reset early stopping counter
+    patience = 10
+    min_delta = 0.005  # Minimum improvement to reset early stopping counter
 
     script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
 
@@ -249,8 +253,8 @@ def main():
     log(f"\n{'=' * 60}")
     log("TRAINING")
     log(f"{'=' * 60}")
-    log(f"{'Epoch':<8} {'Train Loss':<14} {'Val Loss':<14} {'LR':<12} {'Status'}")
-    log("-" * 62)
+    log(f"{'Epoch':<8} {'Train Loss':<14} {'Val Loss':<14} {'Val F1':<10} {'LR':<12} {'Status'}")
+    log("-" * 73)
 
     train_start = datetime.now()
 
@@ -258,6 +262,7 @@ def main():
     history_epochs = []
     history_train_loss = []
     history_val_loss = []
+    history_val_f1 = []
     history_lr = []
 
     for epoch in range(epochs):
@@ -279,14 +284,20 @@ def main():
         # Validation
         model.eval()
         val_loss = 0.0
+        val_preds = []
+        val_labels = []
         with torch.no_grad():
             for X_batch, y_batch in val_loader:
                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
                 outputs = model(X_batch)
                 loss = criterion(outputs, y_batch)
                 val_loss += loss.item() * X_batch.size(0)
+                preds = torch.argmax(outputs, dim=1)
+                val_preds.extend(preds.cpu().numpy())
+                val_labels.extend(y_batch.cpu().numpy())
 
         val_loss /= len(val_loader.dataset)
+        val_f1 = f1_score(val_labels, val_preds, average='macro', zero_division=0)
 
         # Step the LR scheduler
         current_lr = optimizer.param_groups[0]['lr']
@@ -304,12 +315,13 @@ def main():
             if patience_counter >= patience:
                 status = "EARLY STOP"
 
-        log(f"{epoch+1:02d}/{epochs:<5} {train_loss:<14.4f} {val_loss:<14.4f} {current_lr:<12.6f} {status}")
+        log(f"{epoch+1:02d}/{epochs:<5} {train_loss:<14.4f} {val_loss:<14.4f} {val_f1:<10.4f} {current_lr:<12.6f} {status}")
 
         # Record history
         history_epochs.append(epoch + 1)
         history_train_loss.append(train_loss)
         history_val_loss.append(val_loss)
+        history_val_f1.append(val_f1)
         history_lr.append(current_lr)
 
         if patience_counter >= patience:
@@ -365,46 +377,64 @@ def main():
     log(f"\nModel saved to: {model_path}")
     log(f"Log saved to: {log_path}")
 
-    # ── Generate Training Curves Plot ──
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
+    # ── Generate Training Curves Plot (Matplotlib) ──
+    plt.style.use('default')
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left subplot: Losses
+    ax1.plot(history_epochs, history_train_loss, label='Train Loss', color='red', linewidth=2)
+    ax1.plot(history_epochs, history_val_loss, label='Val Loss', color='blue', linewidth=2)
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss')
+    ax1.set_title('Training & Validation Loss')
+    ax1.legend(loc='upper right')
+    
+    # Right subplot: F1 Score
+    ax2.plot(history_epochs, history_val_f1, label='Val F1 (Macro)', color='orange', linewidth=2)
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('F1 Score')
+    ax2.set_title('Validation F1 Score')
+    ax2.set_ylim(0, 1.05)
+    ax2.legend(loc='lower right')
+    
+    plt.suptitle(f'{display_name} Training Curves ({trainable_params:,} params)', fontsize=14)
+    plt.tight_layout()
+    
+    curves_png = os.path.join(logs_dir, 'training_curves.png')
+    plt.savefig(curves_png, dpi=200, bbox_inches='tight')
+    plt.close()
+    log(f"Training curves PNG saved to: {curves_png}")
 
-    fig = make_subplots(specs=[[{'secondary_y': True}]])
+    # ── Generate Training Curves HTML (Plotly) ──
+    fig_plotly = make_subplots(specs=[[{'secondary_y': True}]])
 
-    fig.add_trace(go.Scatter(
+    fig_plotly.add_trace(go.Scatter(
         x=history_epochs, y=history_train_loss, mode='lines',
-        name='Train Loss', line=dict(color='#FF6B6B', width=2)
+        name='Train Loss', line=dict(color='red', width=2)
     ), secondary_y=False)
 
-    fig.add_trace(go.Scatter(
+    fig_plotly.add_trace(go.Scatter(
         x=history_epochs, y=history_val_loss, mode='lines',
-        name='Val Loss', line=dict(color='#4ECDC4', width=2)
+        name='Val Loss', line=dict(color='blue', width=2)
     ), secondary_y=False)
 
-    fig.add_trace(go.Scatter(
+    fig_plotly.add_trace(go.Scatter(
         x=history_epochs, y=history_lr, mode='lines',
-        name='Learning Rate', line=dict(color='#FFE66D', width=1.5, dash='dot')
+        name='Learning Rate', line=dict(color='orange', width=1.5, dash='dot')
     ), secondary_y=True)
 
-    fig.update_layout(
+    fig_plotly.update_layout(
         title=f'{display_name} Training Curves ({trainable_params:,} params)',
-        template='plotly_dark', height=450, width=900,
+        template='plotly_white', height=450, width=900,
         legend=dict(orientation='h', yanchor='top', y=1.12, xanchor='center', x=0.5)
     )
-    fig.update_xaxes(title_text='Epoch')
-    fig.update_yaxes(title_text='Loss', secondary_y=False)
-    fig.update_yaxes(title_text='Learning Rate', secondary_y=True, showgrid=False)
+    fig_plotly.update_xaxes(title_text='Epoch')
+    fig_plotly.update_yaxes(title_text='Loss', secondary_y=False)
+    fig_plotly.update_yaxes(title_text='Learning Rate', secondary_y=True, showgrid=False)
 
     curves_html = os.path.join(logs_dir, 'training_curves.html')
-    fig.write_html(curves_html)
-    log(f"Training curves saved to: {curves_html}")
-
-    try:
-        curves_png = os.path.join(logs_dir, 'training_curves.png')
-        fig.write_image(curves_png, width=900, height=450, scale=2)
-        log(f"Training curves PNG saved to: {curves_png}")
-    except Exception:
-        pass
+    fig_plotly.write_html(curves_html)
+    log(f"Training curves HTML saved to: {curves_html}")
 
     log(f"\n{'=' * 60}")
 

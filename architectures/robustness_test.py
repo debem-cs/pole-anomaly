@@ -15,7 +15,9 @@ import json
 import numpy as np
 import pandas as pd
 import torch
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import datetime
 import importlib.util
 
@@ -25,12 +27,10 @@ from model_selection import MODEL_DISPLAY_NAMES, get_model, select_model
 script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '.'
 root_dir = os.path.join(script_dir, '..')
 
-# Load anomaly_generator directly from its file path
-_gen_path = os.path.join(root_dir, 'data-gen', 'src', 'anomaly_generator.py')
-_spec = importlib.util.spec_from_file_location("anomaly_generator", _gen_path)
-_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
-generate_anomaly = _mod.generate_anomaly
+# Import the data generation script directly
+import sys
+sys.path.append(os.path.join(root_dir, 'data-gen'))
+import generate_custom_dataset as gcd
 
 
 # ─────────────────────────────────────────────
@@ -40,72 +40,28 @@ def generate_test_dataset(templates, class_map, global_mean, base_std_noise, the
                           noise_multiplier=1.0, variance_level=0.04, num_anomalies=50,
                           seed=42):
     """
-    Generate a small synthetic dataset with controllable noise and deformation.
-    Returns a DataFrame with columns: time_step, gamma_dose, is_anomaly
+    Generate a small synthetic dataset with controllable noise and deformation
+    by calling the shared generator in data-gen/script/generate_custom_dataset.py.
     """
-    rng = np.random.RandomState(seed)
-    template_names = list(templates.keys())
-
+    # Temporarily override generator config to match our swept params
+    gcd.CONFIG["BACKGROUND_MEAN"] = global_mean
+    gcd.CONFIG["BACKGROUND_STD"] = base_std_noise
+    gcd.CONFIG["BASELINE_THETA"] = theta
+    gcd.CONFIG["BASELINE_SIGMA"] = sigma
+    
     # Compute signal length: ~1200 spacing between anomalies
     spacing = 1200
     N = spacing * (num_anomalies + 2)
 
-    # Pre-generate anomaly shapes
-    inject_points = [spacing * (i + 1) + rng.randint(-100, 100) for i in range(num_anomalies)]
-
-    anomaly_injections = []
-    for idx in inject_points:
-        chosen_name = rng.choice(template_names)
-        df_template = templates[chosen_name]
-
-        target_amplitude = base_std_noise * rng.uniform(3.0, 7.6)
-        target_period = rng.randint(80, 400)
-
-        t_discrete, v_discrete = generate_anomaly(
-            df_template,
-            amplitude=target_amplitude,
-            period=target_period,
-            variance=variance_level
-        )
-
-        anomaly_injections.append({
-            'start': idx,
-            'values': v_discrete,
-            'template_name': chosen_name,
-            'class_id': class_map[chosen_name]
-        })
-
-    # Generate baseline (OU process)
-    baseline = np.zeros(N)
-    noise_steps = rng.normal(scale=sigma, size=N)
-    val = global_mean
-    for i in range(N):
-        val = val + theta * (global_mean - val) + noise_steps[i]
-        baseline[i] = val
-
-    # Apply scaled high-frequency noise
-    effective_std = base_std_noise * noise_multiplier
-    background = rng.normal(loc=baseline, scale=effective_std)
-    background = np.clip(background, 0, None)
-
-    labels = np.zeros(N, dtype=int)
-
-    # Inject anomalies
-    for anom in anomaly_injections:
-        start = anom['start']
-        for j, v in enumerate(anom['values']):
-            pos = start + j
-            if 0 <= pos < N:
-                background[pos] += v
-                if v > 1e-2:
-                    labels[pos] = anom['class_id']
-
-    df = pd.DataFrame({
-        'time_step': np.arange(N),
-        'gamma_dose': background,
-        'is_anomaly': labels
-    })
-
+    df = gcd.create_synthetic_dataset(
+        total_points=N,
+        num_anomalies=num_anomalies,
+        noise_multiplier=noise_multiplier,
+        variance_override=variance_level,
+        return_df=True,
+        seed=seed
+    )
+    
     return df
 
 
@@ -397,12 +353,41 @@ def main():
     else:
         log("Deformation: model maintained >50% F1 Score across all tested variance levels")
 
-    # ── Plot ──
+    # ── Plot (Matplotlib) ──
     log("\nGenerating robustness chart...")
+    plt.style.use('default')
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
+    
+    noise_x = [r[0] for r in noise_results]
+    noise_y = [r[2] * 100 for r in noise_results]
+    ax1.plot(noise_x, noise_y, marker='o', linestyle='-', color='red', linewidth=3, markersize=8, label='Macro F1 Score')
+    ax1.set_title('Background Noise Intensity')
+    ax1.set_xlabel(f'Noise Multiplier (×1 = {base_std_noise:.2f} std dev)')
+    ax1.set_ylabel('F1 Score (%)')
+    ax1.set_ylim(0, 110)
+    ax1.grid(True, linestyle='--', alpha=0.3)
+    ax1.legend()
+    
+    deform_x = [r[0] for r in deform_results]
+    deform_y = [r[2] * 100 for r in deform_results]
+    ax2.plot(deform_x, deform_y, marker='o', linestyle='-', color='blue', linewidth=3, markersize=8, label='Macro F1 Score')
+    ax2.set_title('Anomaly Shape Deformation')
+    ax2.set_xlabel(f'Deformation Multiplier (×1 = {BASELINE_VARIANCE} variance)')
+    ax2.grid(True, linestyle='--', alpha=0.3)
+    ax2.legend()
+    
+    plt.suptitle(f'{display_name} Robustness: F1 Score vs. Noise & Deformation', fontsize=16)
+    plt.tight_layout()
+    
+    output_png = os.path.join(logs_dir, 'robustness_test.png')
+    plt.savefig(output_png, bbox_inches='tight', dpi=200)
+    plt.close()
+    
+    log(f"PNG saved to: {output_png}")
 
-    from plotly.subplots import make_subplots
-
-    fig = make_subplots(
+    # ── Plot (Plotly HTML) ──
+    fig_plotly = make_subplots(
         rows=1, cols=2,
         subplot_titles=(
             'Background Noise Intensity',
@@ -412,56 +397,49 @@ def main():
     )
 
     # ── Left panel: Noise sweep ──
-    fig.add_trace(go.Scatter(
+    fig_plotly.add_trace(go.Scatter(
         x=[r[0] for r in noise_results],
         y=[r[2] * 100 for r in noise_results],
         mode='lines+markers',
         name='Macro F1 Score',
-        line=dict(color='#FF6B6B', width=3),
+        line=dict(color='red', width=3),
         marker=dict(size=8),
         legendgroup='noise', legendgrouptitle_text='Noise Sweep',
         hovertemplate='Noise ×%{x:.1f}<br>F1 Score: %{y:.1f}%<extra></extra>'
     ), row=1, col=1)
 
     # ── Right panel: Deformation sweep ──
-    fig.add_trace(go.Scatter(
+    fig_plotly.add_trace(go.Scatter(
         x=[r[0] for r in deform_results],
         y=[r[2] * 100 for r in deform_results],
         mode='lines+markers',
         name='Macro F1 Score',
-        line=dict(color='#4ECDC4', width=3),
+        line=dict(color='blue', width=3),
         marker=dict(size=8),
         legendgroup='deform', legendgrouptitle_text='Deformation Sweep',
         hovertemplate='Deformation ×%{x:.1f}<br>F1 Score: %{y:.1f}%<extra></extra>'
     ), row=1, col=2)
 
     # ── Layout ──
-    fig.update_layout(
+    fig_plotly.update_layout(
         title=dict(text=f'{display_name} Robustness: F1 Score vs. Noise & Deformation', x=0.5),
-        template='plotly_dark',
+        template='plotly_white',
         height=500, width=1100,
         legend=dict(
             orientation='v',
-            bgcolor='rgba(0,0,0,0.4)',
+            bgcolor='rgba(255,255,255,0.4)',
             font=dict(size=11)
         )
     )
 
-    fig.update_xaxes(title_text=f'Noise Multiplier (×1 = {base_std_noise:.2f} std dev)', row=1, col=1)
-    fig.update_xaxes(title_text=f'Deformation Multiplier (×1 = {BASELINE_VARIANCE} variance)', row=1, col=2)
-    fig.update_yaxes(title_text='F1 Score (%)', range=[0, 110], row=1, col=1)
-    fig.update_yaxes(range=[0, 110], row=1, col=2)
+    fig_plotly.update_xaxes(title_text=f'Noise Multiplier (×1 = {base_std_noise:.2f} std dev)', row=1, col=1)
+    fig_plotly.update_xaxes(title_text=f'Deformation Multiplier (×1 = {BASELINE_VARIANCE} variance)', row=1, col=2)
+    fig_plotly.update_yaxes(title_text='F1 Score (%)', range=[0, 110], row=1, col=1)
+    fig_plotly.update_yaxes(range=[0, 110], row=1, col=2)
 
     output_html = os.path.join(logs_dir, 'robustness_test.html')
-    fig.write_html(output_html)
+    fig_plotly.write_html(output_html)
     log(f"Chart saved to: {output_html}")
-
-    try:
-        output_png = os.path.join(logs_dir, 'robustness_test.png')
-        fig.write_image(output_png, width=1100, height=500, scale=2)
-        log(f"PNG saved to: {output_png}")
-    except Exception:
-        pass
 
     log(f"\nLog saved to: {log_path}")
     log("=" * 70)

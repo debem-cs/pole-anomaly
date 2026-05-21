@@ -21,7 +21,7 @@ def get_model(model_name: str, num_classes: int, in_channels: int = 1):
         raise ValueError(f"Unknown model '{model_name}'. Available: {list(AVAILABLE_MODELS.keys())}")
 
     module_name, class_name = AVAILABLE_MODELS[model_name]
-    mod = importlib.import_module(module_name)
+    mod = importlib.import_module(f"saved_models.{module_name}")
     model_class = getattr(mod, class_name)
 
     if model_name == '1d_cnn':

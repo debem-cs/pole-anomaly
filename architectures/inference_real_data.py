@@ -3,6 +3,7 @@ import json
 import torch
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import torch.nn.functional as F
@@ -80,9 +81,13 @@ def main():
     model.eval()
     print("Model loaded successfully.")
 
-    # 4. Prepare Plotly Subplots
+    # 4. Prepare Matplotlib Figure (Only 1 month, 10k snapshot for PNG)
+    print(f"\nGenerating Matplotlib graph for 1 month (10k snapshot)...")
+    plt.style.use('default')
+    fig, ax1 = plt.subplots(figsize=(15, 6))
+        
     print(f"\nGenerating Plotly graph with {len(columns)} subplots...")
-    fig = make_subplots(
+    fig_plotly = make_subplots(
         rows=len(columns), cols=1,
         shared_xaxes=False,
         vertical_spacing=0.05,
@@ -144,17 +149,46 @@ def main():
                 for c in range(num_classes):
                     probabilities[t, c] = np.mean(prob_accum[t][c])
 
-        # 6. Add to Plotly Figure
-        time_steps = np.arange(segment_size)
+        # 6. Add to Matplotlib Figure (Only first month)
+        if col_idx == 0:
+            limit = min(10000, segment_size)
+            time_steps_png = np.arange(limit)
 
-        # Plot Background Gamma (Primary Y)
-        fig.add_trace(
+            # Plot Background Gamma (Primary Y)
+            ax1.plot(time_steps_png, gamma_dose[:limit], color='#1f77b4', linewidth=1, alpha=0.7, label=f'{col_name} Dose')
+            ax1.set_title(f"Time Period starting: {col_name} (10k Snapshot)")
+            ax1.set_ylabel("Gamma Dose Level")
+            ax1.set_xlabel("Time Steps")
+
+            ax2 = ax1.twinx()
+
+            # Plot Confidence Curves (Secondary Y)
+            for c in range(1, num_classes):
+                df_probs = pd.DataFrame({'prob': probabilities[:, c]})
+                df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
+                df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
+                smooth_probs = df_probs['prob'].values
+
+                color = colors[(c - 1) % len(colors)]
+                class_label = class_names.get(c, f"Class {c}")
+
+                ax2.plot(time_steps_png, smooth_probs[:limit] * 100, color=color, linewidth=2, label=f'{class_label} Confidence')
+
+            ax2.set_ylabel("CNN Confidence Probability (%)")
+            ax2.set_ylim(0, 105)
+
+            lines1, labels1 = ax1.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(1.05, 1))
+            
+        # Add to Plotly Figure
+        time_steps = np.arange(segment_size)
+        fig_plotly.add_trace(
             go.Scatter(x=time_steps, y=gamma_dose, mode='lines', name=f'{col_name} Dose',
-                       line=dict(color='Teal', width=1), opacity=0.7, showlegend=(col_idx == 0)),
+                       line=dict(color='teal', width=1), opacity=0.7, showlegend=(col_idx == 0)),
             row=col_idx+1, col=1, secondary_y=False,
         )
 
-        # Plot Confidence Curves (Secondary Y)
         for c in range(1, num_classes):
             df_probs = pd.DataFrame({'prob': probabilities[:, c]})
             df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
@@ -163,31 +197,36 @@ def main():
 
             color = colors[(c - 1) % len(colors)]
             class_label = class_names.get(c, f"Class {c}")
-
-            # Only show legend once per class
             show_leg = (col_idx == 0)
 
-            fig.add_trace(
+            fig_plotly.add_trace(
                 go.Scatter(x=time_steps, y=smooth_probs * 100, mode='lines', name=f'{class_label} Confidence',
                            line=dict(color=color, width=2), showlegend=show_leg),
                 row=col_idx+1, col=1, secondary_y=True,
             )
 
-        fig.update_yaxes(title_text="Gamma Dose Level", row=col_idx+1, col=1, secondary_y=False)
-        fig.update_yaxes(range=[0, 105], showgrid=False, row=col_idx+1, col=1, secondary_y=True)
+        fig_plotly.update_yaxes(title_text="Gamma Dose Level", row=col_idx+1, col=1, secondary_y=False)
+        fig_plotly.update_yaxes(range=[0, 105], showgrid=False, row=col_idx+1, col=1, secondary_y=True)
 
-    fig.update_layout(
+    plt.suptitle(f'{display_name} Inference on Real Data (Unlabelled)', fontsize=16)
+    plt.tight_layout(rect=[0, 0, 0.85, 0.98])  # Adjust for legend outside
+
+    output_png = os.path.join(logs_dir, 'real_data_inference.png')
+    plt.savefig(output_png, bbox_inches='tight', dpi=200)
+    plt.close()
+
+    fig_plotly.update_layout(
         title=f'{display_name} Inference on Real Data (Unlabelled)',
         height=400 * len(columns),  # Make it tall enough to fit all subplots
-        template='plotly_dark',
+        template='plotly_white',
         hovermode='x unified',
         legend=dict(yanchor="top", y=1.0, xanchor="right", x=1.05)
     )
 
     output_html = os.path.join(logs_dir, 'real_data_inference.html')
-    fig.write_html(output_html)
+    fig_plotly.write_html(output_html)
 
-    print(f"\nVisualization saved to {output_html}")
+    print(f"\nVisualization saved to {output_png} and {output_html}")
     print(f"{'=' * 60}")
 
 if __name__ == "__main__":

@@ -3,9 +3,13 @@ import json
 import torch
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.preprocessing import label_binarize
+from datetime import datetime
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime
 
 from model_selection import MODEL_DISPLAY_NAMES, get_model, select_model
 
@@ -198,6 +202,7 @@ def main():
     event_pred = []
     event_conf = []
     event_details = []
+    event_probs_all = []
 
     for evt_start, evt_end, true_class in events:
         event_probs = probabilities[evt_start:evt_end]
@@ -213,6 +218,7 @@ def main():
         event_true.append(true_class)
         event_pred.append(pred_class)
         event_conf.append(confidence)
+        event_probs_all.append(avg_probs)
         event_details.append({
             'start': evt_start, 'end': evt_end,
             'length': evt_end - evt_start,
@@ -222,6 +228,7 @@ def main():
     event_true = np.array(event_true)
     event_pred = np.array(event_pred)
     event_conf = np.array(event_conf)
+    event_probs_all = np.array(event_probs_all)
 
     log(f"Events with valid predictions: {len(event_true)}")
 
@@ -265,10 +272,10 @@ def main():
     log(f"Mean Confidence: {np.mean(event_conf):.1%}")
 
     # Per-class metrics at event level
-    log(f"\n{'Class':<20} {'Support':>8} {'Prec':>8} {'Recall':>8} {'F1':>8}")
-    log("-" * 55)
+    log(f"\n{'Class':<20} {'Support':>8} {'Prec':>8} {'Recall':>8} {'F1':>8} {'Spec':>8} {'FAR':>8}")
+    log("-" * 73)
 
-    e_precs, e_recs, e_f1s = [], [], []
+    e_precs, e_recs, e_f1s, e_specs, e_fars = [], [], [], [], []
     for c in sorted(set(event_true.tolist() + event_pred.tolist())):
         if c == 0:
             continue
@@ -276,83 +283,179 @@ def main():
         tp = int(np.sum((event_pred == c) & (event_true == c)))
         fp = int(np.sum((event_pred == c) & (event_true != c)))
         fn = int(np.sum((event_pred != c) & (event_true == c)))
+        tn = int(np.sum((event_pred != c) & (event_true != c)))
         support = int(np.sum(event_true == c))
 
         prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
         f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+        spec = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+        far = 1.0 - spec
 
         e_precs.append(prec)
         e_recs.append(rec)
         e_f1s.append(f1)
+        e_specs.append(spec)
+        e_fars.append(far)
 
-        log(f"{name:<20} {support:>8} {prec:>8.4f} {rec:>8.4f} {f1:>8.4f}")
+        log(f"{name:<20} {support:>8} {prec:>8.4f} {rec:>8.4f} {f1:>8.4f} {spec:>8.4f} {far:>8.4f}")
 
-    log("-" * 55)
+    log("-" * 73)
     if e_precs:
-        log(f"{'Macro Average':<20} {'':>8} {np.mean(e_precs):>8.4f} {np.mean(e_recs):>8.4f} {np.mean(e_f1s):>8.4f}")
+        log(f"{'Macro Average':<20} {'':>8} {np.mean(e_precs):>8.4f} {np.mean(e_recs):>8.4f} {np.mean(e_f1s):>8.4f} {np.mean(e_specs):>8.4f} {np.mean(e_fars):>8.4f}")
 
-    # 5. Visualization
-    log(f"\nGenerating Plotly graph...")
+    # Generate Confusion Matrix Plot
+    plt.style.use('default')
+    cm = confusion_matrix(event_true, event_pred, labels=all_evt_classes)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                xticklabels=[class_names.get(c, f"C{c}") for c in all_evt_classes],
+                yticklabels=[class_names.get(c, f"C{c}") for c in all_evt_classes])
+    plt.title(f'{display_name} - Event-Level Confusion Matrix')
+    plt.ylabel('True Class')
+    plt.xlabel('Predicted Class')
+    cm_path = os.path.join(logs_dir, 'confusion_matrix.png')
+    plt.savefig(cm_path, bbox_inches='tight')
+    plt.close()
+    log(f"\nConfusion matrix saved to {cm_path}")
 
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    # Generate ROC Curves
+    try:
+        plt.style.use('default')
+        plt.figure(figsize=(10, 8))
+        y_true_bin = label_binarize(event_true, classes=range(num_classes))
+        colors = ['magenta', 'orange', 'yellow', 'lime', 'cyan', 'dodgerblue', 'white', 'pink']
+        for c in range(1, num_classes):
+            if np.sum(y_true_bin[:, c]) > 0:
+                fpr, tpr, _ = roc_curve(y_true_bin[:, c], event_probs_all[:, c])
+                roc_auc = auc(fpr, tpr)
+                plt.plot(fpr, tpr, color=colors[(c-1)%len(colors)], lw=2,
+                         label=f'{class_names.get(c, f"Class {c}")} (AUC = {roc_auc:.3f})')
+        plt.plot([0, 1], [0, 1], color='white', lw=2, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title(f'{display_name} - ROC Curves')
+        plt.legend(loc="lower right")
+        roc_path = os.path.join(logs_dir, 'roc_curves.png')
+        plt.savefig(roc_path, bbox_inches='tight')
+        plt.close()
+        log(f"ROC curves saved to {roc_path}")
+    except Exception as e:
+        log(f"Could not generate ROC curves: {e}")
+
+    # 5. Visualization (Matplotlib)
+    log(f"\nGenerating Inference Visualization plot...")
+    plt.style.use('default')
+    fig, ax1 = plt.subplots(figsize=(15, 6))
 
     # Background Gamma
-    fig.add_trace(
-        go.Scatter(x=time_steps, y=gamma_dose, mode='lines', name='Simulated Gamma Noise',
-                   line=dict(color='Teal', width=1), opacity=0.7),
-        secondary_y=False,
-    )
+    ax1.plot(time_steps, gamma_dose, color='teal', linewidth=1, alpha=0.7, label='Simulated Gamma Noise')
+    ax1.set_xlabel('Time Steps')
+    ax1.set_ylabel('Gamma Dose Level')
 
     # Ground Truth Anomalies
     anomalous_idx = np.where(is_anomaly > 0)[0]
-    hover_texts = [f"True Anomaly: {class_names.get(is_anomaly[idx], is_anomaly[idx])}" for idx in anomalous_idx]
-
-    fig.add_trace(
-        go.Scatter(x=time_steps[anomalous_idx], y=gamma_dose[anomalous_idx], mode='markers',
-                   name='True Anomalies', marker=dict(color='Red', size=5), text=hover_texts, hoverinfo="x+y+text"),
-        secondary_y=False,
-    )
+    ax1.scatter(time_steps[anomalous_idx], gamma_dose[anomalous_idx], color='red', s=5, label='True Anomalies', zorder=5)
 
     # CNN Probability Curves
-    colors = ['magenta', 'orange', 'yellow', 'lime', 'cyan', 'dodgerblue', 'white', 'pink', 'gold', 'lightgreen']
+    ax2 = ax1.twinx()
+    colors = ['magenta', 'orange', 'green', 'lime', 'cyan', 'dodgerblue', 'purple', 'pink', 'gold', 'olive']
     for c in range(1, num_classes):
         df_probs = pd.DataFrame({'prob': probabilities[:, c]})
         df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
-        # Apply a rolling average to smooth out the high-frequency sliding window fluctuations
+        df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
+        smooth_probs = df_probs['prob'].values
+
+        color = colors[(c - 1) % len(colors)]
+        class_label = class_names.get(c, f"Class {c}")
+        ax2.plot(time_steps, smooth_probs * 100, color=color, linewidth=2, label=f'{class_label} Confidence (%)')
+
+    ax2.set_ylabel('CNN Confidence Probability (%)')
+    ax2.set_ylim(0, 105)
+
+    plt.title(f'{display_name} Multi-Class Inference: Streaming Anomaly Classification', fontsize=14)
+    
+    # Combine legends from both axes
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left', bbox_to_anchor=(0.01, 0.99))
+
+    # Limit x-axis to first 3 anomalies for the static PNG snapshot
+    is_anom_bool = is_anomaly > 0
+    diffs = np.diff(is_anom_bool.astype(int))
+    starts = np.where(diffs == 1)[0] + 1
+    ends = np.where(diffs == -1)[0] + 1
+    if len(is_anom_bool) > 0 and is_anom_bool[0]: starts = np.insert(starts, 0, 0)
+    if len(is_anom_bool) > 0 and is_anom_bool[-1]: ends = np.append(ends, len(is_anom_bool))
+    
+    if len(starts) >= 3:
+        padding = 2000
+        xlim_start = time_steps[max(0, starts[0] - padding)]
+        xlim_end = time_steps[min(len(time_steps)-1, ends[2] + padding)]
+        ax1.set_xlim(xlim_start, xlim_end)
+    elif len(starts) > 0:
+        padding = 2000
+        xlim_start = time_steps[max(0, starts[0] - padding)]
+        xlim_end = time_steps[min(len(time_steps)-1, ends[-1] + padding)]
+        ax1.set_xlim(xlim_start, xlim_end)
+
+    output_png = os.path.join(logs_dir, 'cnn_inference_visualization.png')
+    plt.savefig(output_png, bbox_inches='tight', dpi=200)
+    plt.close()
+    
+    log(f"\nVisualization saved to {output_png}")
+
+    # 6. Visualization (Plotly)
+    log(f"\nGenerating Plotly graph...")
+
+    fig_plotly = make_subplots(specs=[[{"secondary_y": True}]])
+
+    fig_plotly.add_trace(
+        go.Scatter(x=time_steps, y=gamma_dose, mode='lines', name='Simulated Gamma Noise',
+                   line=dict(color='teal', width=1), opacity=0.7),
+        secondary_y=False,
+    )
+
+    hover_texts = [f"True Anomaly: {class_names.get(is_anomaly[idx], is_anomaly[idx])}" for idx in anomalous_idx]
+
+    fig_plotly.add_trace(
+        go.Scatter(x=time_steps[anomalous_idx], y=gamma_dose[anomalous_idx], mode='markers',
+                   name='True Anomalies', marker=dict(color='red', size=5), text=hover_texts, hoverinfo="x+y+text"),
+        secondary_y=False,
+    )
+
+    for c in range(1, num_classes):
+        df_probs = pd.DataFrame({'prob': probabilities[:, c]})
+        df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
         df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
         smooth_probs = df_probs['prob'].values
 
         color = colors[(c - 1) % len(colors)]
         class_label = class_names.get(c, f"Class {c}")
 
-        fig.add_trace(
+        fig_plotly.add_trace(
             go.Scatter(x=time_steps, y=smooth_probs * 100, mode='lines', name=f'{class_label} Confidence (%)',
                        line=dict(color=color, width=3)),
             secondary_y=True,
         )
 
-    fig.update_layout(
+    fig_plotly.update_layout(
         title=f'{display_name} Multi-Class Inference: Streaming Anomaly Classification',
         xaxis_title='Time Steps',
-        template='plotly_dark',
+        template='plotly_white',
         hovermode='x unified',
         legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
     )
 
-    fig.update_yaxes(title_text="Gamma Dose Level", secondary_y=False)
-    fig.update_yaxes(title_text="CNN Confidence Probability (%)", range=[0, 105], secondary_y=True, showgrid=False)
+    fig_plotly.update_yaxes(title_text="Gamma Dose Level", secondary_y=False)
+    fig_plotly.update_yaxes(title_text="CNN Confidence Probability (%)", range=[0, 105], secondary_y=True, showgrid=False)
 
     output_html = os.path.join(logs_dir, 'cnn_inference_visualization.html')
-    output_png = os.path.join(logs_dir, 'cnn_inference_visualization.png')
+    fig_plotly.write_html(output_html)
 
-    fig.write_html(output_html)
-    try:
-        fig.write_image(output_png)
-    except Exception as e:
-        pass
-
-    log(f"\nVisualization saved to {output_html}")
+    log(f"Visualization saved to {output_html}")
     log(f"Log saved to {log_path}")
     log(f"\n{'=' * 60}")
 
