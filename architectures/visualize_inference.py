@@ -118,133 +118,43 @@ def main():
     total_params = sum(p.numel() for p in model.parameters())
     log(f"Model Parameters: {total_params:,}")
 
+    from inference_engine import run_sliding_window_inference, evaluate_detection_events
+    
     # 4. Continuous Inference via Sliding Window with ACCUMULATION
     log(f"\nRunning inference...")
-    inference_start = datetime.now()
-
-    # Accumulate probabilities across all overlapping windows
-    probabilities = np.zeros((segment_size, num_classes))
-    counts = np.zeros(segment_size)
-
-    num_windows = (segment_size - window_size) // stride + 1
-
-    for start in range(0, segment_size - window_size + 1, stride):
-        end = start + window_size
-        window_data = gamma_dose[start:end]
-
-        # Use per-window centering + global std normalization (same as training)
-        window_mean = np.mean(window_data)
-        window_scaled = (window_data - window_mean) / train_std
-        x_tensor = torch.tensor(window_scaled, dtype=torch.float32).view(1, 1, window_size).to(device)
-
-        with torch.no_grad():
-            output = model(x_tensor)
-            prob = torch.softmax(output, dim=1).cpu().numpy()[0]
-
-        # Accumulate predictions across ALL points in the window (not just center)
-        probabilities[start:end] += prob
-        counts[start:end] += 1
-
-    # Average the accumulated probabilities
-    for i in range(len(counts)):
-        if counts[i] > 0:
-            probabilities[i] /= counts[i]
-        else:
-            probabilities[i] = np.nan
-
-    inference_duration = datetime.now() - inference_start
+    probabilities, counts, num_windows, inference_duration = run_sliding_window_inference(
+        gamma_dose, model, device, train_std, num_classes, window_size, stride
+    )
+    
     log(f"Inference completed in {inference_duration}")
     log(f"Total windows processed: {num_windows:,}")
     log(f"Windows per second: {num_windows / max(inference_duration.total_seconds(), 0.001):.0f}")
-
-    # Compute detection statistics against ground truth
-    log(f"\n--- Detection Summary ---")
-    valid_indices = np.where(~np.isnan(probabilities[:, 0]))[0]
-
-    if len(valid_indices) > 0:
-        predicted_classes = np.argmax(probabilities[valid_indices], axis=1)
-        max_confidences = np.max(probabilities[valid_indices], axis=1)
-        true_classes = is_anomaly[valid_indices].astype(int)
-
-        for c in range(num_classes):
-            name = class_names.get(c, f"Class {c}")
-            detected = np.sum(predicted_classes == c)
-            if detected > 0:
-                avg_conf = np.mean(max_confidences[predicted_classes == c])
-                log(f"  {name}: {detected} windows detected (avg confidence: {avg_conf:.2%})")
-            else:
-                log(f"  {name}: 0 windows detected")
-
+    
     # ============ EVENT-LEVEL EVALUATION ============
-    # Group contiguous anomaly points into discrete events and evaluate per-event.
-    # This avoids the misleading point-level metrics caused by sliding window boundary spillover.
     log(f"\n{'=' * 80}")
-    log("EVENT-LEVEL EVALUATION")
+    log("DETECTION-DRIVEN EVENT EVALUATION")
     log(f"{'=' * 80}")
-    log("(Each contiguous anomaly region counts as one event)")
-
-    events = []
-    idx = 0
-    while idx < segment_size:
-        label = int(is_anomaly[idx])
-        if label > 0:
-            evt_start = idx
-            while idx < segment_size and int(is_anomaly[idx]) == label:
-                idx += 1
-            events.append((evt_start, idx, label))
-        else:
-            idx += 1
-
-    log(f"Total anomaly events in segment: {len(events)}")
-
-    # Classify each event using the model's averaged accumulated probabilities
-    event_true = []
-    event_pred = []
-    event_conf = []
-    event_details = []
-    event_probs_all = []
-
-    for evt_start, evt_end, true_class in events:
-        event_probs = probabilities[evt_start:evt_end]
-        valid_mask = ~np.isnan(event_probs[:, 0])
-
-        if valid_mask.sum() == 0:
-            continue
-
-        avg_probs = np.mean(event_probs[valid_mask], axis=0)
-        pred_class = int(np.argmax(avg_probs))
-        confidence = float(avg_probs[pred_class])
-
-        event_true.append(true_class)
-        event_pred.append(pred_class)
-        event_conf.append(confidence)
-        event_probs_all.append(avg_probs)
-        event_details.append({
-            'start': evt_start, 'end': evt_end,
-            'length': evt_end - evt_start,
-            'true': true_class, 'pred': pred_class, 'conf': confidence
-        })
-
-    event_true = np.array(event_true)
-    event_pred = np.array(event_pred)
-    event_conf = np.array(event_conf)
-    event_probs_all = np.array(event_probs_all)
-
-    log(f"Events with valid predictions: {len(event_true)}")
-
-    # Per-event results table
-    log(f"\n{'#':<4} {'True Class':<20} {'Predicted':<20} {'Conf':>7} {'Pts':>7} {''}")
-    log("-" * 66)
-
+    
+    results = evaluate_detection_events(probabilities, is_anomaly, num_classes, bg_threshold=0.3, tolerance=50)
+    
+    event_true = results['event_true']
+    event_pred = results['event_pred']
+    event_conf = results['event_conf']
+    event_probs_all = results['event_probs_all']
+    event_details = results['event_details']
+    
+    log(f"Extracted Ground-Truth Events: {results['total_true_events']}")
+    log(f"Extracted Predicted Events: {results['total_pred_events']}")
+    
+    log(f"\n{'#':<4} {'Type':<20} {'True Class':<15} {'Predicted':<15} {'Conf':>7} {'Pts':>7}")
+    log("-" * 75)
     for i, det in enumerate(event_details):
         true_name = class_names.get(det['true'], f"Class {det['true']}")
         pred_name = class_names.get(det['pred'], f"Class {det['pred']}")
-        result = "OK" if det['true'] == det['pred'] else "MISS"
-        log(f"{i+1:<4} {true_name:<20} {pred_name:<20} {det['conf']:>6.1%} {det['length']:>7} {result}")
-
-    # Event-level confusion matrix
+        log(f"{i+1:<4} {det['type']:<20} {true_name:<15} {pred_name:<15} {det['conf']:>6.1%} {det['length']:>7}")
+        
     all_evt_classes = sorted(set(event_true.tolist() + event_pred.tolist()))
-
+    
     log(f"\n--- Event-Level Confusion Matrix (rows=true, cols=predicted) ---")
     header = f"{'':>16}"
     for c in all_evt_classes:
@@ -260,49 +170,27 @@ def main():
             count = int(np.sum((event_true == true_c) & (event_pred == pred_c)))
             row += f" {count:>10}"
         log(row)
-
-    # Summary
-    correct = int(np.sum(event_true == event_pred))
-    detected_any = int(np.sum(event_pred > 0))
-    total_events = len(event_true)
-
+        
     log(f"\n--- Event-Level Summary ---")
-    log(f"Exact Classification: {correct}/{total_events} ({correct/total_events:.1%})")
-    log(f"Detection Rate (any anomaly): {detected_any}/{total_events} ({detected_any/total_events:.1%})")
-    log(f"Mean Confidence: {np.mean(event_conf):.1%}")
-
-    # Per-class metrics at event level
-    log(f"\n{'Class':<20} {'Support':>8} {'Prec':>8} {'Recall':>8} {'F1':>8} {'Spec':>8} {'FAR':>8}")
-    log("-" * 73)
-
-    e_precs, e_recs, e_f1s, e_specs, e_fars = [], [], [], [], []
-    for c in sorted(set(event_true.tolist() + event_pred.tolist())):
-        if c == 0:
+    log(f"True Positives (Hits): {results['tp']}")
+    log(f"False Positives (Hallucinations/Misclassifications): {results['fp']}")
+    log(f"False Negatives (Missed/Misclassified): {results['fn']}")
+    log(f"Mean Confidence of Predictions: {np.mean(event_conf) if len(event_conf) > 0 else 0.0:.1%}")
+    
+    log(f"\n{'Class':<20} {'Support':>8} {'Prec':>8} {'Recall':>8} {'F1':>8}")
+    log("-" * 55)
+    
+    per_class = results.get('per_class_metrics', {})
+    for c in all_evt_classes:
+        if c == 0 or c not in per_class:
             continue
         name = class_names.get(c, f"Class {c}")
-        tp = int(np.sum((event_pred == c) & (event_true == c)))
-        fp = int(np.sum((event_pred == c) & (event_true != c)))
-        fn = int(np.sum((event_pred != c) & (event_true == c)))
-        tn = int(np.sum((event_pred != c) & (event_true != c)))
-        support = int(np.sum(event_true == c))
-
-        prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        spec = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-        far = 1.0 - spec
-
-        e_precs.append(prec)
-        e_recs.append(rec)
-        e_f1s.append(f1)
-        e_specs.append(spec)
-        e_fars.append(far)
-
-        log(f"{name:<20} {support:>8} {prec:>8.4f} {rec:>8.4f} {f1:>8.4f} {spec:>8.4f} {far:>8.4f}")
-
-    log("-" * 73)
-    if e_precs:
-        log(f"{'Macro Average':<20} {'':>8} {np.mean(e_precs):>8.4f} {np.mean(e_recs):>8.4f} {np.mean(e_f1s):>8.4f} {np.mean(e_specs):>8.4f} {np.mean(e_fars):>8.4f}")
+        m = per_class[c]
+        log(f"{name:<20} {m['support']:>8} {m['precision']:>8.4f} {m['recall']:>8.4f} {m['f1']:>8.4f}")
+        
+    log("-" * 55)
+    if per_class:
+        log(f"{'Macro Average':<20} {'':>8} {results.get('macro_precision', 0.0):>8.4f} {results.get('macro_recall', 0.0):>8.4f} {results['macro_f1']:>8.4f}")
 
     # Generate Confusion Matrix Plot
     plt.style.use('default')
@@ -361,16 +249,19 @@ def main():
 
     # CNN Probability Curves
     ax2 = ax1.twinx()
-    colors = ['magenta', 'orange', 'green', 'lime', 'cyan', 'dodgerblue', 'purple', 'pink', 'gold', 'olive']
-    for c in range(1, num_classes):
+    colors = ['gray', 'magenta', 'orange', 'green', 'lime', 'cyan', 'dodgerblue', 'purple', 'pink', 'gold', 'olive']
+    for c in range(0, num_classes):
         df_probs = pd.DataFrame({'prob': probabilities[:, c]})
         df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
         df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
         smooth_probs = df_probs['prob'].values
 
-        color = colors[(c - 1) % len(colors)]
+        color = colors[c % len(colors)]
         class_label = class_names.get(c, f"Class {c}")
-        ax2.plot(time_steps, smooth_probs * 100, color=color, linewidth=2, label=f'{class_label} Confidence (%)')
+        
+        alpha = 0.4 if c == 0 else 1.0
+        lw = 1.5 if c == 0 else 2
+        ax2.plot(time_steps, smooth_probs * 100, color=color, linewidth=lw, alpha=alpha, label=f'{class_label} Confidence (%)')
 
     ax2.set_ylabel('CNN Confidence Probability (%)')
     ax2.set_ylim(0, 105)
@@ -426,18 +317,21 @@ def main():
         secondary_y=False,
     )
 
-    for c in range(1, num_classes):
+    for c in range(0, num_classes):
         df_probs = pd.DataFrame({'prob': probabilities[:, c]})
         df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
         df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
         smooth_probs = df_probs['prob'].values
 
-        color = colors[(c - 1) % len(colors)]
+        color = colors[c % len(colors)]
         class_label = class_names.get(c, f"Class {c}")
+        
+        opacity = 0.4 if c == 0 else 1.0
+        lw = 1.5 if c == 0 else 3
 
         fig_plotly.add_trace(
             go.Scatter(x=time_steps, y=smooth_probs * 100, mode='lines', name=f'{class_label} Confidence (%)',
-                       line=dict(color=color, width=3)),
+                       line=dict(color=color, width=lw), opacity=opacity),
             secondary_y=True,
         )
 

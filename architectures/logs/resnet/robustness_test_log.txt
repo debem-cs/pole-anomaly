@@ -1,10 +1,10 @@
 ======================================================================
 ResNet 1D ROBUSTNESS TEST
-Timestamp: 2026-05-21 23:43:38
+Timestamp: 2026-05-22 12:49:54
 ======================================================================
 
-Baseline noise std: 2.7033
-Global mean: 99.95
+Baseline noise std: 2.5300
+Global mean: 99.26
 Templates loaded: ['bell', 'bell_sq', 'fast_ascend', 'fast_descend', 'M', 'square']
 Class mapping: {'bell': 1, 'bell_sq': 2, 'fast_ascend': 3, 'fast_descend': 4, 'M': 5, 'square': 6}
 Number of classes: 7
@@ -18,16 +18,16 @@ SWEEP 1: BACKGROUND NOISE INTENSITY
 
 Noise Mult.    Events    Macro F1    
 -------------------------------------
-1.00           50        100.0%      
-1.22           50        100.0%      
-1.44           50        100.0%      
-1.67           50        100.0%      
-1.89           50        100.0%      
-2.11           50        100.0%      
-2.33           50        100.0%      
-2.56           50        100.0%      
-2.78           50        100.0%      
-3.00           50        100.0%      
+1.00           50        98.4%       
+1.22           50        98.4%       
+1.44           50        94.4%       
+1.67           50        92.8%       
+1.89           50        84.9%       
+2.11           50        76.9%       
+2.33           50        65.3%       
+2.56           50        63.1%       
+2.78           50        57.9%       
+3.00           50        52.9%       
 
 ======================================================================
 SWEEP 2: ANOMALY SHAPE DEFORMATION
@@ -36,22 +36,22 @@ SWEEP 2: ANOMALY SHAPE DEFORMATION
 
 Deform Mult.   Events    Macro F1    
 -------------------------------------
-1.00           50        100.0%      
-1.78           50        100.0%      
-2.56           50        98.6%       
-3.33           50        89.1%       
-4.11           50        73.2%       
-4.89           50        69.1%       
-5.67           50        60.1%       
-6.44           50        49.1%       
-7.22           50        40.4%       
-8.00           50        40.6%       
+1.00           50        98.4%       
+1.78           50        98.4%       
+2.56           50        84.6%       
+3.33           50        75.8%       
+4.11           50        78.5%       
+4.89           50        54.9%       
+5.67           50        47.8%       
+6.44           50        44.8%       
+7.22           50        34.9%       
+8.00           50        38.4%       
 
 ======================================================================
 SUMMARY
 ======================================================================
 Noise: model maintained >50% F1 Score across all tested multipliers
-Deformation: F1 Score first drops below 50% at multiplier = 6.4x
+Deformation: F1 Score first drops below 50% at multiplier = 5.7x
 
 Generating robustness chart...
 PNG saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\robustness_test.png

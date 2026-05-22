@@ -95,7 +95,7 @@ def main():
         specs=[[{"secondary_y": True}] for _ in range(len(columns))]
     )
 
-    colors = ['magenta', 'orange', 'yellow', 'lime', 'cyan', 'dodgerblue', 'white', 'pink', 'gold', 'lightgreen']
+    colors = ['gray', 'magenta', 'orange', 'green', 'lime', 'cyan', 'dodgerblue', 'purple', 'pink', 'gold', 'olive']
 
     # 5. Process Each Time Series
     for col_idx, col_name in enumerate(columns):
@@ -106,48 +106,13 @@ def main():
         gamma_dose = gamma_series.values.astype(np.float32)
         segment_size = len(gamma_dose)
 
+        from inference_engine import run_sliding_window_inference
+        
         # We don't have true anomaly labels, so we skip evaluation and just predict
-        windows = []
-        indices = []
-
-        idx = 0
-        while idx + window_size <= segment_size:
-            w = gamma_dose[idx:idx + window_size].copy()
-            # Same normalization as training
-            w = (w - np.mean(w)) / train_std
-            windows.append(w)
-            indices.append(idx)
-            idx += stride
-
-        print(f"  Extracted {len(windows)} windows.")
-
-        # Accumulated probabilities mapping
-        # probabilities[t, c] = list of probability predictions for time t, class c
-        prob_accum = {i: {c: [] for c in range(num_classes)} for i in range(segment_size)}
-
-        # Batch inference
-        batch_size = 256
-        with torch.no_grad():
-            for i in range(0, len(windows), batch_size):
-                batch_windows = windows[i:i + batch_size]
-                batch_indices = indices[i:i + batch_size]
-
-                inputs = torch.tensor(np.array(batch_windows), dtype=torch.float32).unsqueeze(1).to(device)
-                outputs = model(inputs)
-                probs = F.softmax(outputs, dim=1).cpu().numpy()
-
-                for b_idx, start_idx in enumerate(batch_indices):
-                    window_probs = probs[b_idx]
-                    for t in range(start_idx, start_idx + window_size):
-                        for c in range(num_classes):
-                            prob_accum[t][c].append(window_probs[c])
-
-        # Average probabilities per time step
-        probabilities = np.full((segment_size, num_classes), np.nan)
-        for t in range(segment_size):
-            if len(prob_accum[t][0]) > 0:
-                for c in range(num_classes):
-                    probabilities[t, c] = np.mean(prob_accum[t][c])
+        probabilities, counts, num_windows, inference_duration = run_sliding_window_inference(
+            gamma_dose, model, device, train_std, num_classes, window_size, stride, batch_size=256
+        )
+        print(f"  Processed {num_windows} windows in {inference_duration}.")
 
         # 6. Add to Matplotlib Figure (Only first month)
         if col_idx == 0:
@@ -163,16 +128,19 @@ def main():
             ax2 = ax1.twinx()
 
             # Plot Confidence Curves (Secondary Y)
-            for c in range(1, num_classes):
+            for c in range(0, num_classes):
                 df_probs = pd.DataFrame({'prob': probabilities[:, c]})
                 df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
                 df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
                 smooth_probs = df_probs['prob'].values
 
-                color = colors[(c - 1) % len(colors)]
+                color = colors[c % len(colors)]
                 class_label = class_names.get(c, f"Class {c}")
+                
+                alpha = 0.4 if c == 0 else 1.0
+                lw = 1.5 if c == 0 else 2
 
-                ax2.plot(time_steps_png, smooth_probs[:limit] * 100, color=color, linewidth=2, label=f'{class_label} Confidence')
+                ax2.plot(time_steps_png, smooth_probs[:limit] * 100, color=color, linewidth=lw, alpha=alpha, label=f'{class_label} Confidence')
 
             ax2.set_ylabel("CNN Confidence Probability (%)")
             ax2.set_ylim(0, 105)
@@ -189,19 +157,22 @@ def main():
             row=col_idx+1, col=1, secondary_y=False,
         )
 
-        for c in range(1, num_classes):
+        for c in range(0, num_classes):
             df_probs = pd.DataFrame({'prob': probabilities[:, c]})
             df_probs['prob'] = df_probs['prob'].interpolate(method='linear', limit_direction='both')
             df_probs['prob'] = df_probs['prob'].rolling(window=smoothing_window, center=True, min_periods=1).mean()
             smooth_probs = df_probs['prob'].values
 
-            color = colors[(c - 1) % len(colors)]
+            color = colors[c % len(colors)]
             class_label = class_names.get(c, f"Class {c}")
             show_leg = (col_idx == 0)
+            
+            opacity = 0.4 if c == 0 else 1.0
+            lw = 1.5 if c == 0 else 3
 
             fig_plotly.add_trace(
                 go.Scatter(x=time_steps, y=smooth_probs * 100, mode='lines', name=f'{class_label} Confidence',
-                           line=dict(color=color, width=2), showlegend=show_leg),
+                           line=dict(color=color, width=lw), opacity=opacity, showlegend=show_leg),
                 row=col_idx+1, col=1, secondary_y=True,
             )
 

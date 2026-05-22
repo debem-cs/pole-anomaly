@@ -49,9 +49,19 @@ def generate_test_dataset(templates, class_map, global_mean, base_std_noise, the
     gcd.CONFIG["BASELINE_THETA"] = theta
     gcd.CONFIG["BASELINE_SIGMA"] = sigma
     
-    # Compute signal length: ~1200 spacing between anomalies
-    spacing = 1200
-    N = spacing * (num_anomalies + 2)
+    # CRITICAL FIX: The data generator scales the generated anomaly amplitudes by the `std_noise`. 
+    # If we increase noise_multiplier, we also inadvertently increase the anomaly strength (keeping SNR exactly the same!). 
+    # To test true robustness to background noise, we MUST divide the amplitude thresholds by the noise_multiplier 
+    # so that the absolute strength of the injected anomalies remains constant.
+    orig_amp_min = gcd.CONFIG["AMPLITUDE_MIN"]
+    orig_amp_max = gcd.CONFIG["AMPLITUDE_MAX"]
+    gcd.CONFIG["AMPLITUDE_MIN"] = orig_amp_min / noise_multiplier
+    gcd.CONFIG["AMPLITUDE_MAX"] = orig_amp_max / noise_multiplier
+    
+    # Keep the exact data size / num_anomalies ratio as the training dataset
+    mean_train_anomalies = (gcd.CONFIG["NUM_ANOMALIES_MIN"] + gcd.CONFIG["NUM_ANOMALIES_MAX"]) // 2
+    spacing = gcd.CONFIG["TOTAL_POINTS"] // mean_train_anomalies
+    N = spacing * (num_anomalies + 1)
 
     df = gcd.create_synthetic_dataset(
         total_points=N,
@@ -62,115 +72,52 @@ def generate_test_dataset(templates, class_map, global_mean, base_std_noise, the
         seed=seed
     )
     
+    # Restore configs
+    gcd.CONFIG["AMPLITUDE_MIN"] = orig_amp_min
+    gcd.CONFIG["AMPLITUDE_MAX"] = orig_amp_max
+    
     return df
 
 
 # ─────────────────────────────────────────────
 # Event-level Evaluation (reuses inference logic)
 # ─────────────────────────────────────────────
+from inference_engine import run_sliding_window_inference, evaluate_detection_events
+
 def evaluate_on_dataset(df, model, device, train_std, num_classes, window_size=512, stride=10):
     """
     Run sliding-window inference and compute event-level accuracy.
-    Returns (event_accuracy, detection_rate, mean_confidence, num_events)
+    Returns (event_accuracy, detection_rate, mean_confidence, num_events, macro_f1)
     """
     gamma_dose = df['gamma_dose'].values
     is_anomaly = df['is_anomaly'].values
-    segment_size = len(df)
-
-    # Accumulate probabilities
-    probabilities = np.zeros((segment_size, num_classes))
-    counts = np.zeros(segment_size)
-
-    for start in range(0, segment_size - window_size + 1, stride):
-        end = start + window_size
-        window_data = gamma_dose[start:end]
-        window_mean = np.mean(window_data)
-        window_scaled = (window_data - window_mean) / train_std
-
-        x_tensor = torch.tensor(window_scaled, dtype=torch.float32).view(1, 1, window_size).to(device)
-
-        with torch.no_grad():
-            output = model(x_tensor)
-            prob = torch.softmax(output, dim=1).cpu().numpy()[0]
-
-        probabilities[start:end] += prob
-        counts[start:end] += 1
-
-    # Average
-    for i in range(len(counts)):
-        if counts[i] > 0:
-            probabilities[i] /= counts[i]
-
-    # Extract events
-    events = []
-    idx = 0
-    while idx < segment_size:
-        label = int(is_anomaly[idx])
-        if label > 0:
-            evt_start = idx
-            while idx < segment_size and int(is_anomaly[idx]) == label:
-                idx += 1
-            events.append((evt_start, idx, label))
-        else:
-            idx += 1
-
-    if len(events) == 0:
-        return 0.0, 0.0, 0.0, 0
-
-    # Classify each event
-    correct = 0
+    
+    probabilities, counts, num_windows, _ = run_sliding_window_inference(
+        gamma_dose, model, device, train_std, num_classes, window_size, stride
+    )
+    
+    results = evaluate_detection_events(
+        probabilities, is_anomaly, num_classes, bg_threshold=0.3, tolerance=50
+    )
+    
+    total = results['total_true_events']
+    correct = results['tp']
+    
+    event_details = results['event_details']
     detected = 0
     confidences = []
-
-    event_true = []
-    event_pred = []
-
-    for evt_start, evt_end, true_class in events:
-        event_probs = probabilities[evt_start:evt_end]
-        valid_mask = counts[evt_start:evt_end] > 0
-
-        if valid_mask.sum() == 0:
-            continue
-
-        avg_probs = np.mean(event_probs[valid_mask], axis=0)
-        pred_class = int(np.argmax(avg_probs))
-        confidence = float(avg_probs[pred_class])
-
-        event_true.append(true_class)
-        event_pred.append(pred_class)
-
-        if pred_class == true_class:
-            correct += 1
-        if pred_class > 0:
+    
+    for det in event_details:
+        # A true event was "detected" if it was a TP or a Misclassification (i.e. not entirely missed)
+        if det['type'] in ['TP (Hit)', 'FN (Misclassified)']:
             detected += 1
-        confidences.append(confidence)
-
-    total = len(events)
+            confidences.append(det['conf'])
+            
+    mean_conf = float(np.mean(confidences)) if confidences else 0.0
     event_acc = correct / total if total > 0 else 0.0
     det_rate = detected / total if total > 0 else 0.0
-    mean_conf = np.mean(confidences) if confidences else 0.0
-
-    # Calculate Event-Level Macro F1
-    event_true = np.array(event_true)
-    event_pred = np.array(event_pred)
-
-    e_f1s = []
-    # Only calculate F1 over classes that actually appeared in the true labels
-    for c in sorted(set(event_true.tolist())):
-        if c == 0:
-            continue
-        tp = int(np.sum((event_pred == c) & (event_true == c)))
-        fp = int(np.sum((event_pred == c) & (event_true != c)))
-        fn = int(np.sum((event_pred != c) & (event_true == c)))
-
-        prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        rec = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        e_f1s.append(f1)
-
-    macro_f1 = np.mean(e_f1s) if e_f1s else 0.0
-
-    return event_acc, det_rate, mean_conf, total, macro_f1
+    
+    return event_acc, det_rate, mean_conf, total, results['macro_f1']
 
 
 # ─────────────────────────────────────────────
@@ -196,29 +143,11 @@ def main():
     log(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log("=" * 70)
 
-    # ── Load real background characteristics ──
-    filename = os.path.join(root_dir, 'data-gen', 'data', '2015_months_DebitDoseA.txt')
-    try:
-        data_gamma = np.genfromtxt(filename, delimiter=',', skip_header=1)
-        mois = 3
-        real_background = data_gamma[:, mois]
-        Nh = 400
-        real_background = real_background[Nh:-Nh]
-        real_background = real_background[~np.isnan(real_background)]
-        global_mean = np.mean(real_background)
-        window_size_bg = 480
-        kernel = np.ones(window_size_bg) / window_size_bg
-        baseline = np.convolve(real_background, kernel, mode='valid')
-        hf_residual = real_background[window_size_bg//2 : -window_size_bg//2 + 1] - baseline
-        base_std_noise = np.std(hf_residual)
-        baseline_diffs = np.diff(baseline)
-        sigma = np.std(baseline_diffs)
-        theta = 0.000004
-    except FileNotFoundError:
-        global_mean = 100.0
-        base_std_noise = 2.55
-        theta = 0.000004
-        sigma = 0.010
+    # ── Load background characteristics directly from data generator CONFIG ──
+    global_mean = gcd.CONFIG["BACKGROUND_MEAN"]
+    base_std_noise = gcd.CONFIG["BACKGROUND_STD"]
+    theta = gcd.CONFIG["BASELINE_THETA"]
+    sigma = gcd.CONFIG["BASELINE_SIGMA"]
 
     log(f"\nBaseline noise std: {base_std_noise:.4f}")
     log(f"Global mean: {global_mean:.2f}")
