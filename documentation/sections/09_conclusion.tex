@@ -1,0 +1,167 @@
+\chapter{Conclusion and future work}
+\label{chap:conclusion}
+
+\section{Summary of contributions}
+\label{sec:conc-summary}
+
+This project tackled the problem of detecting and classifying
+radiological anomalies in noisy gamma-dose time series. Starting from
+four months of real 2015 recordings, we built a complete pipeline from
+data to deployment-ready models:
+
+\begin{enumerate}[leftmargin=*, itemsep=0.25em]
+    \item A \textbf{noise model} was fitted on the real signal --- a
+    high-frequency Gaussian component on top of an Ornstein--Uhlenbeck
+    baseline drift --- and its parameters were extracted automatically
+    by a calibration script.
+    \item Six \textbf{anomaly templates} were designed jointly with the
+    supervisor as a structured CSV format (keypoints, allowed
+    deformation quadrants, interpolation modes), making it
+    straightforward to add new shapes in the future.
+    \item A scalable \textbf{synthetic dataset generator} produces a
+    ten-million-point labelled signal in constant memory, mixing the
+    noise model with random deformations of the six templates.
+    \item Three \textbf{neural network architectures} were implemented
+    in PyTorch with a shared interface, ranging from a compact
+    $23\,000$-parameter 1D-CNN to a $110\,000$-parameter hybrid
+    CNN+Transformer model with multi-head self-attention.
+    \item A \textbf{sliding-window inference engine} and an
+    \textbf{event-level evaluation protocol} bridge the gap between
+    sample-level classification accuracy and the operational metric
+    that matters (do we detect each anomaly event, and do we get its
+    class right?).
+    \item A \textbf{robustness study} sweeps background noise and shape
+    deformation independently and reveals the gracious-degradation
+    properties of each architecture.
+    \item A \textbf{real-data deployment trial} on the original 2015
+    recordings produced an honest negative result --- the models do
+    not work well out of the box --- followed by a careful diagnostic
+    that identifies five distinct causes of the failure and a punch-list
+    of seven concrete remediations.
+\end{enumerate}
+
+\section{Architecture recommendation}
+\label{sec:conc-archi}
+
+On the synthetic benchmark the ResNet 1D is the clear winner: it
+achieves a perfect $100\%$ event-level macro F1 on the test segment,
+degrades the most gracefully under both noise and deformation stress,
+and remains compact enough ($\sim 75\,000$ parameters) to retrain in
+under ten minutes on a laptop GPU. The CNN+Attention model is
+competitive on synthetic data but exhibits a more severe
+out-of-distribution collapse on real data; we keep it in the pipeline
+mainly because it offers the most promising path to longer-window
+analyses (\cref{sec:future-attention}). The baseline 1D-CNN is the
+fastest to train but its catastrophic drop under high noise makes it
+unfit for a beacon that must run across seasons.
+
+If a single architecture must be picked for the next iteration, the
+recommendation is \textbf{ResNet 1D}, possibly with a binary
+detection stage in front of it (\cref{sec:real-remediation}, R6).
+
+\section{Limitations}
+\label{sec:conc-limits}
+
+Several known limitations of the current pipeline are worth recording
+explicitly.
+
+\begin{itemize}[leftmargin=*, itemsep=0.25em]
+    \item \textbf{Distribution shift.} As detailed in
+    \cref{chap:realdata}, the synthetic training distribution does not
+    match the deployment distribution along several dimensions (class
+    prior, anomaly duration, baseline drift, intermediate signals).
+    The system as it stands cannot be deployed on raw beacon data
+    without first addressing these mismatches.
+    \item \textbf{No real ground truth.} The four months of real data
+    have no expert labelling, so we have no quantitative measure of
+    how the models do on real anomalies. The qualitative inspection
+    in \cref{sec:real-symptoms} is the best we can do for now.
+    \item \textbf{Single beacon.} The pipeline assumes a univariate
+    time series. Real surveillance networks involve several beacons
+    and several covariates (temperature, humidity, pressure).
+    Exploiting these as additional input channels is left for
+    future work.
+    \item \textbf{Black-box decisions.} The trained models output a
+    class label but not a justification. The project brief mentions
+    Grad-CAM \cite{selvaraju2017gradcam} as a candidate visualisation
+    method; the architectures expose the relevant hooks
+    (\texttt{last\_conv\_features}) but the Grad-CAM analysis itself
+    was outside the time budget of this iteration.
+\end{itemize}
+
+\section{Future work}
+\label{sec:conc-future}
+
+The seven remediation steps of \cref{sec:real-remediation} are the
+priority list for the next iteration. Beyond them, three longer-term
+directions are worth flagging.
+
+\subsection{Self-supervised pre-training on the real signal}
+
+A natural way to bridge the synthetic--real gap is to pre-train the
+convolutional stem on the four (and ideally more) months of real,
+unlabelled data, using a self-supervised objective such as
+masked-segment reconstruction. The stem then learns features adapted
+to the real signal statistics; only the classifier head needs to be
+fine-tuned on the synthetic dataset. This approach has been very
+successful in audio and biomedical time-series and is directly
+applicable here.
+
+\subsection{Longer windows and stronger attention}
+\label{sec:future-attention}
+
+The CNN+Attention model did not benefit from its long-range mixing on
+$512$-sample windows because the templates rarely extend past
+$\sim 800$ samples. With longer windows ($W = 4096$ or more) the
+attention model could in principle disambiguate close events
+(\texttt{M} versus two consecutive \texttt{bell}s), reason about
+context (a slow ramp during which a sharp spike occurs), and detect
+multi-event episodes. Scaling the attention up requires the usual care
+(longer sinusoidal encoding, more heads or layers, possibly
+linear-complexity attention variants) but the architecture is already
+in place.
+
+\subsection{Explainability with Grad-CAM and attention visualisation}
+
+The two convolutional architectures expose their last convolutional
+layer as \texttt{last\_conv\_features}, ready to be hooked by a
+Grad-CAM implementation. For the attention model, the attention
+matrices themselves are interpretable saliency maps over the token
+sequence. Adding both to the inference scripts would let the supervisor
+visually verify that the model is paying attention to the right part
+of an event when it predicts a class, which is the kind of
+explainability the project brief explicitly requested.
+
+\subsection{Multi-beacon and multi-modal extensions}
+
+A practical surveillance system never works with a single signal in
+isolation; pressure, temperature, humidity and the gamma counts of
+neighbouring beacons are all informative. Extending the input to a
+small number of channels is mechanical (the convolutions are already
+multi-channel by design); the harder problem is collecting a labelled
+multi-modal dataset, which the synthetic generator could be extended
+to produce.
+
+\section{Final words}
+\label{sec:conc-final}
+
+The project ends in an honest mixed state. On the benchmark we
+designed for ourselves the system works very well --- all three
+architectures cross the $90\%$ event-level F1 line and the residual
+network is essentially perfect. On the real data it does not, and the
+gap between the two is dominated by a small number of identifiable
+mismatches between the synthetic training distribution and the
+deployment distribution. Each of those mismatches has a known
+remediation; the next iteration of the project will apply them and
+re-run the same evaluation pipeline that is already in place. Many of
+the pieces required for the next round --- the data generator, the
+event-level evaluator, the robustness study, the three architectures
+--- are reusable as-is.
+
+The single most useful lesson of this iteration is therefore not any
+particular F1 number but a methodological one: \emph{do not benchmark
+a deep model on the same kind of data it was trained on, and call it
+done}. The first contact with real data is what revealed where the
+pipeline really stands, and the diagnostic infrastructure we built to
+make that contact diagnosable is, in the long run, the most valuable
+output of the project.

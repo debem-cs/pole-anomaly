@@ -1,0 +1,516 @@
+\chapter{Theoretical background}
+\label{chap:theory}
+
+This chapter gathers the mathematical machinery that the three
+architectures of \cref{chap:archi} rest on. The goal is to make the
+report \emph{self-contained}: a reader without prior exposure to
+deep learning should, after this chapter, be able to read off the
+operations performed inside each of our three networks and understand
+why they were chosen.
+
+We start with the abstract framing of the task as a windowed
+classification problem (\cref{sec:framing}). We then describe in detail
+the three building blocks that compose our architectures:
+convolutional layers and the supporting normalisations
+(\cref{sec:cnn-theory}), residual connections (\cref{sec:resnet-theory}),
+and the multi-head self-attention mechanism that powers Transformer
+encoders (\cref{sec:attention-theory}). Finally, we summarise the
+training ingredients that all three networks share
+(\cref{sec:train-theory}).
+
+\section{Framing: time-series classification by windowing}
+\label{sec:framing}
+
+Let $x \in \R^N$ denote the gamma-dose signal sampled at uniform
+intervals (one minute, in our case). We want to assign each sample
+$x_t$ to one of $K=7$ classes (six anomaly types plus the normal
+background).
+
+\paragraph{Windowing.} Operating on a single sample is hopeless: the
+classes are defined by the temporal \emph{shape} of an event, not by
+the instantaneous value. We therefore process the signal through a
+sliding window of length $W$ samples:
+\begin{equation}
+    \mathbf{x}^{(t)} = (x_{t-W+1}, x_{t-W+2}, \dots, x_t) \in \R^W,
+    \label{eq:window}
+\end{equation}
+and we ask each network to output, from the window $\mathbf{x}^{(t)}$,
+a probability distribution
+$\hat{p}^{(t)} \in \Delta^{K-1}$ over the $K$ classes\footnote{Here
+$\Delta^{K-1}$ denotes the standard $(K-1)$-simplex, i.e.\ the set of
+non-negative vectors that sum to $1$.}. In our experiments $W=512$
+samples (about $8.5$ hours at $1$ sample / minute).
+
+Successive windows overlap (consecutive predictions share most of their
+input), which lets us \emph{accumulate} probabilities at inference time
+into a continuous, sample-level confidence trace
+(\cref{sec:event-eval}). At training time, windows are extracted at a
+larger stride (32 samples) to reduce redundancy.
+
+\paragraph{Labelling rule.}
+Because a single window may contain a mixture of background and event
+samples, we follow a simple rule: the window inherits the most frequent
+non-zero label inside it if more than $10\%$ of its samples are
+anomalous, and is labelled \texttt{Normal Background} otherwise
+(\cref{fig:sliding-window}). This makes the boundaries of events
+slightly fuzzy --- a deliberate choice that helps the network
+generalise to events whose exact start and end are uncertain.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/sliding_window}
+    \caption{Sliding-window construction on a fragment of the synthetic
+    signal. Each coloured bar represents one $512$-sample training
+    window; red bars indicate windows that contain more than $10\%$
+    anomaly points, so they inherit the underlying class label.}
+    \label{fig:sliding-window}
+\end{figure}
+
+\paragraph{Mathematical objective.}
+Letting $f_\theta : \R^W \to \R^K$ denote the network with parameters
+$\theta$, the empirical objective is the (weighted) cross-entropy
+\begin{equation}
+    \mathcal{L}(\theta) = - \frac{1}{|\mathcal{D}|} \sum_{(\mathbf{x}, y) \in \mathcal{D}}
+        w_y \log \softmax(f_\theta(\mathbf{x}))_y,
+    \label{eq:cross-entropy}
+\end{equation}
+where $\mathcal{D}$ is the training set of (window, label) pairs,
+$y \in \{0, \dots, K-1\}$ the integer label, and $w_y > 0$ a class
+weight that compensates for class imbalance, defined in
+\cref{sec:cw-theory}.
+
+\section{Convolutional layers and supporting normalisations}
+\label{sec:cnn-theory}
+
+The cornerstone of all three architectures is the
+\textbf{one-dimensional convolution}.
+
+\subsection{The 1D convolution operator}
+\label{sec:conv-theory}
+
+Let $\mathbf{u} \in \R^{C_{\text{in}} \times L}$ denote an input
+sequence with $C_{\text{in}}$ channels and length $L$, and let
+$\mathbf{w} \in \R^{C_{\text{out}} \times C_{\text{in}} \times k}$
+denote a learnable kernel of $C_{\text{out}}$ output channels with
+support of size $k$. The convolution output
+$\mathbf{v} \in \R^{C_{\text{out}} \times L'}$ has entries:
+\begin{equation}
+    \mathbf{v}_{c, t} = \sum_{c'=1}^{C_{\text{in}}} \sum_{i=1}^{k}
+        \mathbf{w}_{c, c', i} \cdot \mathbf{u}_{c', \, s \cdot t + i - p} + b_c,
+    \label{eq:conv}
+\end{equation}
+where $b_c$ is a learnable bias, $s$ is the \emph{stride} and $p$ is the
+\emph{padding}. The output length is
+$L' = \lfloor (L + 2p - k)/s \rfloor + 1$. Three observations matter:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item The kernel $\mathbf{w}_{c, \cdot, \cdot}$ is shared across all
+    time positions $t$, so the operator is \emph{translation
+    equivariant}: shifting the input shifts the output by the same
+    amount. This is exactly what we want for an anomaly that may occur
+    anywhere in the window.
+    \item The number of parameters is $C_{\text{out}} \cdot C_{\text{in}} \cdot k$
+    (plus $C_{\text{out}}$ biases), \emph{independent of} $L$. Convolutions
+    are therefore much cheaper than the dense fully-connected
+    alternative, which would have $C_{\text{out}} \cdot C_{\text{in}} \cdot L \cdot L'$
+    parameters.
+    \item Each output channel $c$ acts as a learned \emph{feature
+    detector}: it lights up where the input matches a particular local
+    pattern of length $k$.
+\end{itemize}
+
+\paragraph{Receptive field.}
+Stacking several convolutional layers, optionally with sub-sampling
+(stride or pooling, see below), the \emph{receptive field} of a deeper
+neuron --- the range of input samples that can affect its value ---
+grows roughly linearly with depth and exponentially with the
+sub-sampling factor. Our $W=512$ window is short enough that three
+stride-2 pooling steps (giving a receptive field of $\sim 50$ samples on
+top of $k=7$ kernels) already cover the duration of the smallest
+expected anomalies (period $\geq 200$ samples once temporal pooling is
+accounted for).
+
+\subsection{Pointwise nonlinearity: ReLU}
+\label{sec:relu-theory}
+
+Stacking purely linear convolutions yields, by composition, another
+linear operator and so cannot learn rich features. Between successive
+convolutions we therefore apply an element-wise non-linearity. We use
+the \emph{rectified linear unit}, $\ReLU(x) = \max(0, x)$, which is
+cheap to compute, has a non-vanishing gradient on its positive half-line,
+and has become the de facto standard activation in convolutional
+networks. The two normalisation variants used below already absorb
+the negative-half collapse problem (``dying ReLU''), so we do not need a
+fancier activation.
+
+\subsection{Pooling}
+\label{sec:pool-theory}
+
+After a few convolutions we typically reduce the temporal resolution by
+\emph{pooling} a contiguous group of values into one. Our networks use
+two kinds of pooling.
+
+\paragraph{Max-pooling.} Of the values in a window of size $k_p$,
+keep only the maximum:
+$\mathrm{MaxPool}_k(u)_t = \max_{i \in [1, k_p]} u_{s_p t + i}$,
+with stride $s_p = k_p$ in our case so that successive max-pools do not
+overlap. The output is shorter by a factor $k_p$. Max-pooling makes
+the representation locally invariant to small temporal shifts
+of an anomaly.
+
+\paragraph{Adaptive average pooling.} Used near the end of the network
+to bring the temporal axis down to a fixed length regardless of the
+input window size: it averages the input into a target number of bins.
+Our networks emit $4$ temporal bins from \texttt{AdaptiveAvgPool1d(4)},
+which preserves a coarse temporal shape (``did the activation peak in
+the first or the last quarter of the window?'') while removing the
+exact location, before the classifier head.
+
+\subsection{Batch normalisation}
+\label{sec:bn-theory}
+
+A common pathology of deep networks is that the distribution of
+activations inside the network shifts during training, slowing down
+convergence (the so-called \emph{internal covariate shift}). Batch
+normalisation \cite{ioffe2015batch} addresses this by standardising
+each channel of each layer over the current mini-batch:
+\begin{equation}
+    \BN(\mathbf{u})_{c, t} = \gamma_c \cdot \frac{\mathbf{u}_{c, t} - \mu_c}{\sqrt{\sigma_c^2 + \varepsilon}} + \beta_c,
+    \label{eq:bn}
+\end{equation}
+where $\mu_c, \sigma_c^2$ are the channel mean and variance computed
+over the batch dimension (and the time dimension for 1D-BN), and
+$\gamma_c, \beta_c$ are learnable rescaling parameters.
+
+At inference time, $\mu_c$ and $\sigma_c^2$ are replaced by exponential
+moving averages collected during training. This means BN behaves
+\emph{differently} at training and inference time, which can become
+problematic when there is a distribution shift between training and
+deployment --- a subtlety that motivates the GroupNorm variant in our
+two more advanced architectures.
+
+\subsection{Group normalisation}
+\label{sec:gn-theory}
+
+Group normalisation \cite{wu2018group} performs the same affine
+standardisation \emph{but} computes the statistics
+$\mu, \sigma^2$ over a partition of the channels into $G$ groups,
+independently for each sample. There are no running statistics to
+maintain; train and inference behaviour are identical, and the
+operator becomes amplitude-invariant in a window-by-window fashion.
+This robustness against shifts in absolute scale is exactly the
+property we need in a stem that processes signals with a fluctuating
+baseline. Our ResNet 1D and CNN+Attention models use GroupNorm with $8$
+groups (or fewer for narrow channel widths) throughout their
+convolutional stems.
+
+\section{Residual connections}
+\label{sec:resnet-theory}
+
+\paragraph{The vanishing-gradient problem.}
+A pure stack of convolutional layers $f_1 \circ f_2 \circ \dots \circ f_L$
+becomes harder to optimise as $L$ grows: the gradient of the loss with
+respect to early-layer parameters is a product of $L$ Jacobian factors,
+and unless each of them is exactly orthogonal it tends to either
+vanish or explode exponentially.
+
+\paragraph{Residual blocks.}
+He et al.\ \cite{he2016deep} proposed to reformulate a stack of two or
+three layers as a learnable \emph{residual} to the identity:
+\begin{equation}
+    \mathrm{ResBlock}(\mathbf{u}) = \ReLU\bigl(\, \mathbf{u} + \mathcal{F}(\mathbf{u}) \,\bigr),
+    \label{eq:resblock}
+\end{equation}
+where $\mathcal{F}$ is a small sub-network (here: $\Conv \to \GN \to
+\ReLU \to \Conv \to \GN$). The shortcut $+\mathbf{u}$ guarantees that
+the block can degenerate to the identity ($\mathcal{F}=0$) at no cost,
+which means adding a residual block to a working network cannot make
+things worse. In gradient terms the backward pass propagates
+\emph{additively} through the shortcut, so deep stacks remain
+trainable.
+
+When the input and the output of $\mathcal{F}$ have different channel
+counts, the shortcut is replaced by a $1{\times}1$ convolution that
+projects them into compatible spaces. We use this only at block
+transitions, where the channel width grows from $16 \to 32 \to 64$.
+
+\paragraph{Why residual learning helps anomaly classification.}
+For our problem the residual block can be intuitively read as ``copy
+the input through, then \emph{add} a learnt correction'': in early
+blocks the correction extracts local shape primitives (peaks, ramps);
+in later blocks it refines them by re-using the original signal context
+that has been preserved by the shortcut.
+
+\section{Attention and the Transformer encoder}
+\label{sec:attention-theory}
+
+The third architecture in this report augments a small convolutional
+stem with a \emph{Transformer encoder} \cite{vaswani2017attention}.
+Transformers are now the dominant architecture in natural language and
+sequence modelling; they have also proved very competitive on
+time-series classification \cite{hu2022eeg}. The mechanism that powers
+them is \emph{self-attention}, which we now describe carefully.
+
+\subsection{Self-attention}
+\label{sec:selfattn-theory}
+
+The input to a self-attention layer is a sequence of $T$ token vectors
+$\mathbf{Z} \in \R^{T \times d}$ (one vector per time step, of dimension
+$d$). The layer first projects $\mathbf{Z}$ into three learnable
+representations called \emph{queries}, \emph{keys} and \emph{values}:
+\begin{equation}
+    \mathbf{Q} = \mathbf{Z} \mathbf{W}^Q,
+    \quad
+    \mathbf{K} = \mathbf{Z} \mathbf{W}^K,
+    \quad
+    \mathbf{V} = \mathbf{Z} \mathbf{W}^V,
+    \label{eq:qkv}
+\end{equation}
+where $\mathbf{W}^Q, \mathbf{W}^K, \mathbf{W}^V \in \R^{d \times d_h}$
+are learnable parameter matrices ($d_h$ is the per-head dimension).
+
+The attention output is then
+\begin{equation}
+    \Attn(\mathbf{Q}, \mathbf{K}, \mathbf{V})
+    = \softmax\!\left( \frac{\mathbf{Q} \mathbf{K}^\top}{\sqrt{d_h}} \right) \mathbf{V}.
+    \label{eq:attention}
+\end{equation}
+The matrix $\mathbf{A} = \softmax(\mathbf{Q} \mathbf{K}^\top / \sqrt{d_h})
+\in \R^{T \times T}$ has rows that sum to $1$; its entry $A_{ij}$ is
+the fraction of token $i$'s output that comes from token $j$. The
+output sequence at row $i$ is therefore a \emph{convex combination of
+all input value vectors}, weighted by how compatible the query of token
+$i$ is with the key of each other token. The scaling by $\sqrt{d_h}$
+keeps the dot products from saturating the softmax in high dimensions.
+
+\paragraph{Why this matters for our problem.}
+Convolutional layers have a bounded receptive field: a neuron in layer
+$\ell$ depends only on samples within a window of size proportional to
+$\ell$. Self-attention, by contrast, lets every output position attend
+to \emph{every} input position in a single layer, with a
+\emph{learnt}, data-dependent weighting. This long-range, content-based
+mixing is exactly what is needed to disambiguate, say, a sharp rise
+that could be a \texttt{fast\_ascend} or just a noise excursion, by
+looking at what happens \emph{after} the rise within the same window.
+
+\subsection{Multi-head attention}
+\label{sec:mha-theory}
+
+A single attention head can only learn one notion of similarity. To
+let the model attend to several relations in parallel, multi-head
+attention runs $h$ independent attention heads on parallel projections
+of the same input, and concatenates their outputs:
+\begin{equation}
+    \MHA(\mathbf{Z}) = \mathrm{Concat}(\mathbf{O}_1, \dots, \mathbf{O}_h) \mathbf{W}^O,
+    \qquad
+    \mathbf{O}_j = \Attn(\mathbf{Z} \mathbf{W}_j^Q,\, \mathbf{Z} \mathbf{W}_j^K,\, \mathbf{Z} \mathbf{W}_j^V).
+    \label{eq:mha}
+\end{equation}
+We use $h=4$ heads with $d_h = d / h = 16$, so the total number of
+attention parameters is the same as that of a single head with
+dimension $d=64$.
+
+\subsection{Positional encoding}
+\label{sec:posenc-theory}
+
+The attention operation \cref{eq:attention} is \emph{permutation
+equivariant} in the input: shuffling the tokens of $\mathbf{Z}$
+shuffles the output rows in the same way. For time series this is a
+problem: we explicitly want the network to know whether a feature
+occurred at the start or at the end of the window.
+
+We follow Vaswani et al.\ \cite{vaswani2017attention} and add a fixed
+\emph{sinusoidal positional encoding} to the token sequence before
+feeding it to the encoder:
+\begin{equation}
+    \mathrm{PE}_{t, 2k}   = \sin\!\left( t \cdot \omega^{-2k/d} \right),
+    \quad
+    \mathrm{PE}_{t, 2k+1} = \cos\!\left( t \cdot \omega^{-2k/d} \right),
+    \quad
+    \omega = 10\,000.
+    \label{eq:posenc}
+\end{equation}
+This vector is added to the token at position $t$ before any attention
+layer is applied. Sines and cosines at geometrically decreasing
+frequencies let the network express both fine and coarse positional
+relations as easily-learned linear combinations.
+
+\subsection{The Transformer encoder block}
+\label{sec:encoder-theory}
+
+The complete \emph{Transformer encoder layer} composes multi-head
+self-attention with a two-layer feed-forward network and two LayerNorm
+\cite{ba2016layer} steps wrapped in residual connections
+(\cref{fig:transformer-block}):
+\begin{align}
+    \mathbf{Z}' &= \mathbf{Z} + \MHA(\mathrm{LN}(\mathbf{Z})), \\
+    \mathbf{Z}'' &= \mathbf{Z}' + \mathrm{FFN}(\mathrm{LN}(\mathbf{Z}')),
+\end{align}
+with $\mathrm{FFN}(x) = \mathbf{W}_2 \, \mathrm{GELU}(\mathbf{W}_1 x + \mathbf{b}_1) + \mathbf{b}_2$.
+The pre-LayerNorm convention used here (LN \emph{before} attention/FFN)
+is more stable to train than the original post-LN convention.
+
+\paragraph{The CLS aggregation token.}
+After the encoder we still have a length-$T$ sequence, but we need a
+single class probability. Following BERT \cite{devlin2019bert}, we
+prepend to the sequence a special learnable vector --- the
+\emph{classification token} \texttt{[CLS]} --- which has no signal
+content of its own but is allowed to attend to every other token. After
+the encoder, the output row at the \texttt{[CLS]} position has
+aggregated information from the entire sequence and is fed alone to the
+linear classifier.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        font=\small,
+        block/.style={draw, rounded corners=2pt, align=center, minimum height=0.7cm, inner sep=4pt},
+        attn/.style={block, fill=red!12},
+        ffn/.style={block, fill=blue!12},
+        norm/.style={block, fill=black!8},
+        ar/.style={-{Stealth[length=2mm]}}
+    ]
+        \node[norm] (ln1) {LayerNorm};
+        \node[attn, right=0.7cm of ln1] (mha) {Multi-Head\\Self-Attention};
+        \node[circle, draw, right=0.7cm of mha, minimum size=4mm, inner sep=0pt] (add1) {$+$};
+        \node[norm, right=0.6cm of add1] (ln2) {LayerNorm};
+        \node[ffn, right=0.7cm of ln2] (ffn) {Feed-Forward\\(2-layer GELU)};
+        \node[circle, draw, right=0.7cm of ffn, minimum size=4mm, inner sep=0pt] (add2) {$+$};
+
+        \node[left=0.7cm of ln1] (in) {$\mathbf{Z}$};
+        \node[right=0.7cm of add2] (out) {$\mathbf{Z}''$};
+
+        \draw[ar] (in) -- (ln1);
+        \draw[ar] (ln1) -- (mha);
+        \draw[ar] (mha) -- (add1);
+        \draw[ar] (add1) -- (ln2);
+        \draw[ar] (ln2) -- (ffn);
+        \draw[ar] (ffn) -- (add2);
+        \draw[ar] (add2) -- (out);
+
+        % residual 1
+        \draw[ar] (in) to[out=-30, in=-90] ($(add1.south)$);
+        % residual 2
+        \coordinate (rmid) at ($(add1)!0.5!(ln2)$);
+        \draw[ar] (rmid) to[out=-30, in=-90] ($(add2.south)$);
+    \end{tikzpicture}
+    \caption{A pre-LN Transformer encoder block. Each sub-layer is wrapped in a residual connection; LayerNorm is applied before the sub-layer (pre-norm).}
+    \label{fig:transformer-block}
+\end{figure}
+
+\section{Training fundamentals}
+\label{sec:train-theory}
+
+All three networks are trained with the same recipe.
+
+\subsection{Cross-entropy loss}
+\label{sec:ce-theory}
+
+For multi-class classification, the standard loss is the
+\emph{categorical cross-entropy} introduced in \cref{eq:cross-entropy}.
+Letting $\mathbf{z} = f_\theta(\mathbf{x}) \in \R^K$ be the network's
+output logits and $y$ the integer label, the contribution of a single
+example to the loss is
+\begin{equation}
+    \mathcal{L}(\mathbf{x}, y) = -\log \frac{\exp(z_y)}{\sum_{c=1}^{K} \exp(z_c)},
+\end{equation}
+i.e.\ minus the logarithm of the probability the network assigns to the
+correct class after a softmax normalisation. The gradient of $\mathcal{L}$
+with respect to $z_c$ is $\softmax(\mathbf{z})_c - \mathbf{1}[c=y]$:
+the network is encouraged to push the correct logit up and pull the
+others down, in proportion to how confident the current (wrong) belief
+is.
+
+\subsection{Class weighting}
+\label{sec:cw-theory}
+
+When the training set is imbalanced, the loss is dominated by the
+majority class and minority classes are poorly learned. We compensate
+with a per-class weight (a per-example multiplier on the loss)
+inversely proportional to the class frequency,
+\begin{equation}
+    w_c = \frac{N}{K \cdot n_c},
+\end{equation}
+where $n_c$ is the count of class $c$ in the training set and $N$ is
+the total count. In our experiments this gives weights
+$\mathbf{w} = (0.46, 1.18, 1.27, 1.32, 1.24, 1.15, 1.31)$ for the seven
+classes: the \texttt{Normal} class is down-weighted by about a factor
+of two relative to the anomaly classes. We will see in
+\cref{chap:realdata} that this choice, harmless on the synthetic test
+set, becomes problematic at deployment time because of the dramatic
+class prior shift in the real data.
+
+\subsection{Adam optimiser}
+\label{sec:adam-theory}
+
+The model is fit by stochastic gradient descent on mini-batches with
+the Adam optimiser \cite{kingma2015adam}, which maintains, in addition
+to the gradient, an exponential moving average of the first and second
+moments of the gradient per parameter and rescales the update
+accordingly:
+\begin{equation}
+    m_t = \beta_1 m_{t-1} + (1 - \beta_1) g_t,
+    \quad
+    v_t = \beta_2 v_{t-1} + (1 - \beta_2) g_t^2,
+    \quad
+    \theta_{t+1} = \theta_t - \eta \, \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \varepsilon},
+\end{equation}
+where $g_t$ is the gradient at step $t$ and $\hat{m}_t, \hat{v}_t$ are
+the bias-corrected moments. The defaults $\beta_1=0.9, \beta_2=0.999,
+\varepsilon=10^{-8}$ are used. The initial learning rate is $\eta=10^{-3}$.
+
+\subsection{Learning rate scheduling}
+\label{sec:sched-theory}
+
+A constant learning rate is rarely optimal: large steps early in
+training are useful to escape poor local minima, but late in training
+they oscillate around the minimum. We use
+\texttt{ReduceLROnPlateau}: whenever the validation loss has not
+improved for two consecutive epochs, the learning rate is multiplied by
+$0.5$. This is the simplest form of adaptive schedule and is enough
+here to drive the loss down by roughly $20\%$ in the last third of
+training.
+
+\subsection{Early stopping}
+\label{sec:es-theory}
+
+To avoid over-fitting we monitor the validation loss and stop training
+when it has not improved by more than $\delta=5\cdot 10^{-3}$ for ten
+consecutive epochs. The model weights with the lowest validation loss
+are then re-loaded.
+
+\subsection{Temporal train/validation/test split}
+\label{sec:split-theory}
+
+A subtle pitfall of sliding-window time-series classification is
+\emph{data leakage}: if windows are extracted first and then shuffled
+across train/test, two windows that overlap in time can end up in
+different splits, so the test set effectively includes parts of the
+training signal. We avoid this by splitting the \emph{raw signal}
+along time first (the first $80\%$ becomes the train+validation pool,
+the remaining $20\%$ becomes the test set), and only then applying the
+sliding-window extraction independently to each split. The
+$80\%$ train+val pool is then further split uniformly at random into
+$80\%/20\%$, which is safe because no overlap is possible anymore
+between training and validation windows on the same signal slice if
+the stride matches.
+
+\subsection{Window normalisation}
+\label{sec:norm-theory}
+
+Because the baseline of the signal drifts slowly
+(\cref{sec:real-data}), feeding the absolute dose to the network is
+inefficient: the network would waste capacity to learn the same
+features at every possible baseline. We \emph{centre} each window
+independently --- subtract its own mean --- and divide by a single
+global standard deviation $\sigma_{\text{train}}$ estimated on the
+centred training set:
+\begin{equation}
+    \tilde{\mathbf{x}}^{(t)} = \frac{\mathbf{x}^{(t)} - \bar{\mathbf{x}}^{(t)}}{\sigma_{\text{train}}}.
+    \label{eq:window-norm}
+\end{equation}
+The same $\sigma_{\text{train}}$ is used at inference; saving it in a
+JSON file alongside the model weights guarantees deterministic and
+reproducible scaling between training and deployment. This window-level
+centring is a strong inductive bias --- the network only ever sees
+deviations from the local baseline --- but it has a hidden cost that
+becomes apparent in \cref{chap:realdata}.

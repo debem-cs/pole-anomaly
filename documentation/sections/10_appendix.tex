@@ -1,0 +1,219 @@
+\appendix
+\chapter{Appendices}
+\label{chap:appendix}
+
+\section{Anomaly template CSV format}
+\label{app:csv-format}
+
+Each anomaly is encoded as a CSV file in
+\texttt{data-gen/anomalies/}. The columns are described below.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{lp{0.62\linewidth}}
+        \toprule
+        Column & Meaning \\
+        \midrule
+        \texttt{time}    & Normalised time of the keypoint, in $[0, 1]$. \\
+        \texttt{value}   & Normalised amplitude of the keypoint, in $[0, 1]$. \\
+        \texttt{t\_minus}, \texttt{t\_plus} & Boolean flags allowing
+        the keypoint to jitter in the negative or positive time direction. \\
+        \texttt{v\_minus}, \texttt{v\_plus} & Same, for the amplitude axis. \\
+        \texttt{interp}  & Interpolation mode for the segment that
+        \emph{starts} at this keypoint:
+        \texttt{linear} (straight line),
+        \texttt{exp\_up} (concave-up exponential),
+        \texttt{exp\_down} (concave-down exponential),
+        \texttt{bell} (smoothed half-cosine). \\
+        \bottomrule
+    \end{tabular}
+    \caption{Schema of the anomaly-template CSV files.}
+    \label{tab:csv-schema}
+\end{table}
+
+\paragraph{Example: \texttt{bell.csv}.}
+\begin{lstlisting}[caption={Encoding of the \texttt{bell} template.}, label={lst:bell-csv}]
+time,value,t_minus,t_plus,v_minus,v_plus,interp
+0.0,0.0,0,0,0,0,bell
+0.5,1.0,1,1,1,1,bell
+1.0,0.0,0,0,0,0,linear
+\end{lstlisting}
+
+The first and last keypoints have all jitter flags off, so the template
+always starts and ends at $(0,0)$ and $(1,0)$. The middle keypoint can
+jitter in both time and amplitude; the two half-cosine segments make
+the curve smooth.
+
+\section{Hyperparameter reference}
+\label{app:hp}
+
+\subsection{Data generator}
+\label{app:hp-gen}
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{lll}
+        \toprule
+        Group & Parameter & Value \\
+        \midrule
+        \multirow{2}{*}{Size}     & Total points          & $10^{7}$ \\
+                                   & Chunk size            & $5 \cdot 10^{4}$ \\
+        \midrule
+        \multirow{2}{*}{Anomalies}& Number of injections  & uniform in $[5\,000, 8\,000]$ \\
+                                   & Injection jitter      & $\pm 200$ samples \\
+        \midrule
+        \multirow{3}{*}{Shapes}   & Amplitude (in $\sigma$) & uniform in $[2.5, 7.6]$ \\
+                                   & Period (samples)        & uniform in $[200, 800]$ \\
+                                   & Deformation variance    & uniform in $[0.02, 0.10]$ \\
+        \midrule
+        \multirow{4}{*}{Background}& Global mean $\mu$    & $99.26$ \\
+                                   & HF noise std $\sigma$ & $2.53$ \\
+                                   & OU $\theta$           & $4 \cdot 10^{-6}$ \\
+                                   & OU $\sigma_{\mathrm{OU}}$ & $0.0373$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Configuration of \texttt{generate\_custom\_dataset.py} used
+    to produce the dataset for this report.}
+    \label{tab:gen-config}
+\end{table}
+
+\subsection{Training}
+\label{app:hp-train}
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{ll}
+        \toprule
+        Hyperparameter & Value \\
+        \midrule
+        Window size $W$                          & $512$ samples \\
+        Sliding-window stride at training        & $32$ samples \\
+        Sliding-window stride at inference       & $10$ samples \\
+        Window labelling threshold               & $10\%$ anomaly points \\
+        Per-window normalisation                 & subtract window mean, divide by global $\sigma_{\mathrm{train}}$ \\
+        $\sigma_{\mathrm{train}}$ used in this report & $4.21$ \\
+        Train/val/test split                     & temporal $80/20$ then random $80/20$ on train \\
+        Optimizer                                & Adam, $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\varepsilon = 10^{-8}$ \\
+        Initial learning rate                    & $10^{-3}$ \\
+        Batch size                               & $128$ \\
+        Maximum epochs                           & $35$ \\
+        LR scheduler                             & \texttt{ReduceLROnPlateau}(patience=$2$, factor=$0.5$) \\
+        Early stopping                           & patience $10$, min delta $5 \cdot 10^{-3}$ \\
+        Loss                                     & weighted categorical cross-entropy \\
+        Class weights $\mathbf{w}$               & $(0.46, 1.18, 1.27, 1.32, 1.24, 1.15, 1.31)$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Shared training configuration.}
+    \label{tab:train-config}
+\end{table}
+
+\subsection{Inference and event extraction}
+\label{app:hp-inf}
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{ll}
+        \toprule
+        Hyperparameter & Value \\
+        \midrule
+        Sliding-window stride & $10$ samples \\
+        Inference batch size  & $256$ windows \\
+        Smoothing window      & $30$-sample rolling mean on the per-sample probability trace \\
+        Background-probability threshold for an event & $\hat{p}_0 < 0.3$ \\
+        Tolerance gap between adjacent events & $50$ samples \\
+        \bottomrule
+    \end{tabular}
+    \caption{Configuration of the inference engine and event extractor.}
+    \label{tab:inf-config}
+\end{table}
+
+\section{Reproducing the contents of this report}
+\label{app:reproduce}
+
+The repository layout is:
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, caption={Top-level project structure.}]
+pole-anomaly/
+  biblio/                  - the project brief and reference papers
+  data-gen/                - real data + synthetic generator
+    anomaly_generator.py     - template deformation + interpolation
+    generate_custom_dataset.py - end-to-end dataset generator
+    evaluate_real_data.py    - statistical characterisation of real data
+    visualize_anomalies_templates.py
+    interactive_labeling_helper.py
+    anomalies/               - the six template CSV files
+    data/                    - real recordings + generated CSV
+    logs/                    - PNG/HTML inspection plots
+  architectures/           - models, training, inference
+    train.py                 - shared training pipeline (selects model)
+    visualize_inference.py   - synthetic-test event-level evaluation
+    inference_real_data.py   - real-data deployment trial
+    robustness_test.py       - noise/deformation sweep
+    inference_engine.py      - sliding-window + event matching
+    model_selection.py       - model registry & CLI selector
+    saved_models/            - 1d_cnn.py, resNet.py, cnn_attention.py
+    logs/                    - per-model training/inference outputs
+  documentation/           - this report
+    main.tex, preamble.tex, sections/*.tex
+    figures/build_figures.py - reproduces all PNGs in this report
+\end{lstlisting}
+
+The numbers and figures in this report can be reproduced from a clean
+checkout with the following command sequence:
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+# 1. Build the synthetic dataset (about 10 minutes; 600 MB on disk)
+py data-gen/evaluate_real_data.py         # writes data/real_data_params.json
+py data-gen/generate_custom_dataset.py    # writes data/synthetic_custom_dataset.csv
+
+# 2. Make a copy of the dataset under architectures/data/ as
+#    training_dataset.csv and validation_dataset.csv. (Same file twice is fine
+#    if the user only wants to re-train; the temporal split inside train.py
+#    keeps the test segment leakage-free.)
+
+# 3. Train each architecture (~5-10 minutes each on an RTX-class GPU)
+py architectures/train.py --model 1d_cnn
+py architectures/train.py --model resnet
+py architectures/train.py --model cnn_attention
+
+# 4. Synthetic-test event-level evaluation
+py architectures/visualize_inference.py --model 1d_cnn
+py architectures/visualize_inference.py --model resnet
+py architectures/visualize_inference.py --model cnn_attention
+
+# 5. Robustness sweeps
+py architectures/robustness_test.py --model 1d_cnn
+py architectures/robustness_test.py --model resnet
+py architectures/robustness_test.py --model cnn_attention
+
+# 6. Real-data deployment trial
+py architectures/inference_real_data.py --model 1d_cnn
+py architectures/inference_real_data.py --model resnet
+py architectures/inference_real_data.py --model cnn_attention
+
+# 7. Rebuild the figures of this report
+py documentation/figures/build_figures.py
+
+# 8. Compile the report (with a local TeX install)
+cd documentation && pdflatex main && pdflatex main
+\end{lstlisting}
+
+\section{Software environment}
+\label{app:env}
+
+All experiments were run on a single laptop with the following
+software stack:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item Windows 11, Python $3.13$.
+    \item PyTorch $2.12$ (CUDA 12.8), running on an NVIDIA RTX 5060
+    Laptop GPU.
+    \item NumPy, Pandas, Matplotlib, SciPy, scikit-learn for data
+    handling, statistics and reporting.
+    \item Plotly for the interactive HTML diagnostics shipped under
+    \texttt{logs/}.
+\end{itemize}
+A pinned dependency list is included in the top-level
+\texttt{requirements.txt} of the repository.

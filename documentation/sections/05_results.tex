@@ -1,0 +1,243 @@
+\chapter{Results on synthetic data}
+\label{chap:results}
+
+This chapter reports the quantitative performance of the three
+architectures of \cref{chap:archi} on the held-out synthetic test
+segment. We look at the training dynamics
+(\cref{sec:res-train}), the sample-level (window-level) accuracy
+(\cref{sec:res-window}), and the more operationally meaningful
+event-level metrics (\cref{sec:event-eval,sec:res-event}). The chapter
+closes with a cost/performance comparison (\cref{sec:res-cost}).
+
+\section{Training dynamics}
+\label{sec:res-train}
+
+\Cref{fig:training-curves} overlays the train and validation losses
+and the validation macro F1 of all three models. Several observations:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/training_curves_comparison}
+    \caption{Training dynamics. Left: train loss (dashed) and validation
+    loss (solid). Right: validation macro F1 (window level). All three
+    models converge within $35$ epochs and benefit from one or two
+    learning-rate reductions; the residual and attention models reach
+    visibly lower loss plateaus than the baseline.}
+    \label{fig:training-curves}
+\end{figure}
+
+\begin{itemize}[leftmargin=*, itemsep=0.25em]
+    \item The 1D-CNN converges to a higher loss plateau ($\approx 0.72$
+    validation loss) than both the ResNet and the attention model
+    ($\approx 0.57$). The gap between train and validation curves
+    remains small for all three networks, indicating that none of them
+    is severely over-fitting: the residual block and the attention
+    block do extract genuinely more useful features rather than
+    memorising the training set.
+    \item The validation F1 starts much higher for the residual and
+    attention models (above $0.71$ at the first epoch) than for the
+    baseline ($0.61$). The residual variant is the fastest to converge
+    to its plateau --- the skip connections seem to make optimisation
+    not only easier but also faster.
+    \item The attention model's curve is the most non-monotonic ---
+    consistent with the higher variance of Transformer training --- but
+    the \texttt{ReduceLROnPlateau} schedule cuts the learning rate
+    twice and stabilises it.
+\end{itemize}
+
+\section{Window-level test performance}
+\label{sec:res-window}
+
+After training, each model's best checkpoint is loaded and evaluated on
+the held-out test windows. \Cref{tab:test-window} reports the test
+accuracy and per-class accuracy.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \begin{tabular}{lccc}
+        \toprule
+        Class & \textbf{1D-CNN} & \textbf{ResNet 1D} & \textbf{CNN+Attention} \\
+        \midrule
+        \texttt{Normal Background} & $0.941$ & $0.942$ & $0.911$ \\
+        \texttt{bell}              & $0.697$ & $0.779$ & $0.765$ \\
+        \texttt{bell\_sq}          & $0.619$ & $0.713$ & $0.712$ \\
+        \texttt{fast\_ascend}      & $0.704$ & $0.737$ & $0.744$ \\
+        \texttt{fast\_descend}     & $0.721$ & $0.741$ & $0.738$ \\
+        \texttt{M}                 & $0.687$ & $0.765$ & $0.766$ \\
+        \texttt{square}            & $0.703$ & $0.740$ & $0.732$ \\
+        \midrule
+        \textbf{Overall accuracy}  & $0.766$ & $0.807$ & $0.795$ \\
+        \bottomrule
+    \end{tabular}
+    \caption{Window-level accuracy on the held-out synthetic test set
+    ($62\,485$ windows). The residual network is the strongest on the
+    anomaly classes; the attention model is slightly weaker on the
+    \texttt{Normal} class.}
+    \label{tab:test-window}
+\end{table}
+
+These numbers look modest --- roughly $20\%$ of windows are
+misclassified --- but they are deeply misleading at the operational
+level. The reason is that a window is labelled according to the
+\emph{majority anomaly class} inside it, but a single anomaly typically
+spans many overlapping windows that include large fractions of normal
+background. Windows near the boundary of an event easily flip between
+the anomaly class and \texttt{Normal} depending on whether they pass
+the $10\%$ threshold. What we really care about is whether the
+model identifies the event \emph{as a whole}.
+
+\section{Event-level evaluation methodology}
+\label{sec:event-eval}
+
+We therefore evaluate the system on a continuous segment using a
+\emph{detection-driven} protocol implemented in
+\texttt{architectures/inference\_engine.py}.
+
+\subsection{Continuous probability trace}
+
+A test segment of $100\,000$ samples (immediately following the
+training portion) is fed to the network through a sliding window of
+size $512$ and stride $10$. Each window output produces a probability
+vector of length $K=7$ which is averaged into the per-sample running
+total (using $1/n_{\text{visits}}$ as weight). At the end we have a
+sample-level probability matrix $\hat{P} \in \R^{100\,000 \times 7}$.
+
+\subsection{Predicted-event extraction}
+
+A sample is declared ``anomalous'' if $\hat{P}_{t,0} < 0.3$ (i.e.\ the
+network is at least $70\%$ confident that this sample is \emph{not}
+normal). Contiguous regions of anomalous samples form predicted
+events; small gaps of up to $50$ samples are bridged to avoid splitting
+a single event into multiple fragments.
+
+\subsection{Class assignment for each event}
+
+The class of a predicted event is decided by \emph{integrating} the
+probability vectors over the event's duration and picking the class
+with the highest cumulative score:
+\begin{equation}
+    \hat{y}_{\text{event}} = \argmax_{c \in \{1, \dots, K-1\}} \sum_{t \in \text{event}} \hat{P}_{t, c}.
+\end{equation}
+This averaging makes the classification much more robust to per-sample
+noise than a majority vote on per-sample $\argmax$ predictions.
+
+\subsection{Matching predicted to true events}
+
+True events are extracted from the ground-truth labels by the same
+contiguous-region procedure. A predicted event is matched to a true
+event whenever the two intervals overlap; the match with the largest
+overlap is kept. The result is split into:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \emph{True positives (TP)}: a true event matched to a
+    predicted event with the correct class.
+    \item \emph{Misclassifications}: a true event matched to a
+    predicted event with the wrong class (counted as a false
+    \emph{negative} for the true class).
+    \item \emph{Missed events (FN)}: a true event with no overlapping
+    prediction.
+    \item \emph{Hallucinations (FP)}: a predicted event that does not
+    overlap any true event.
+\end{itemize}
+Per-class precision, recall and F1 are then computed in the usual way,
+and the report quotes the macro average across the six anomaly
+classes.
+
+\section{Event-level results}
+\label{sec:res-event}
+
+On the $100\,000$-sample test segment we have $59$ ground-truth events.
+The event-level confusion matrices for the three models are shown in
+\cref{fig:confmat}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/confusion_matrices}
+    \caption{Event-level confusion matrices on the synthetic test
+    segment. Cell colour is the row-normalised recall; the integer
+    inside each cell is the raw event count. The residual network
+    achieves a perfect classification; the attention model misses
+    three events ($-1$ on \texttt{bell}, $-1$ on \texttt{bell\_sq},
+    $-1$ on \texttt{square}); the baseline 1D-CNN misses four
+    events, with the typical confusions
+    \texttt{M} $\rightarrow$ \texttt{bell} and
+    \texttt{square} $\rightarrow$ \texttt{bell\_sq}.}
+    \label{fig:confmat}
+\end{figure}
+
+The per-class precision, recall and F1 are reported in
+\cref{tab:event-prf}.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l ccc ccc ccc}
+        \toprule
+        & \multicolumn{3}{c}{\textbf{1D-CNN}} & \multicolumn{3}{c}{\textbf{ResNet 1D}} & \multicolumn{3}{c}{\textbf{CNN+Attention}} \\
+        \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+        Class & P & R & F1 & P & R & F1 & P & R & F1 \\
+        \midrule
+        \texttt{bell}         & 0.85 & 1.00 & 0.92 & 1.00 & 1.00 & 1.00 & 1.00 & 0.91 & 0.95 \\
+        \texttt{bell\_sq}     & 0.92 & 0.92 & 0.92 & 1.00 & 1.00 & 1.00 & 0.92 & 0.92 & 0.92 \\
+        \texttt{fast\_ascend} & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 0.92 & 1.00 & 0.96 \\
+        \texttt{fast\_descend}& 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+        \texttt{M}            & 1.00 & 0.86 & 0.92 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+        \texttt{square}       & 0.89 & 0.80 & 0.84 & 1.00 & 1.00 & 1.00 & 0.90 & 0.90 & 0.90 \\
+        \midrule
+        \textbf{Macro avg.}   & \textbf{0.94} & \textbf{0.93} & \textbf{0.93} & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} & \textbf{0.96} & \textbf{0.96} & \textbf{0.96} \\
+        \bottomrule
+    \end{tabular}
+    \caption{Per-class precision (P), recall (R) and F1 at the event
+    level on the synthetic test segment. The residual model is
+    flawless on this segment; the attention model achieves $0.96$, and
+    the baseline $0.93$.}
+    \label{tab:event-prf}
+\end{table}
+
+\paragraph{Reading the numbers.} A $93\%$ event-level F1 on the
+baseline is already very useful: it means that out of the $59$ events
+in a $100\,000$-sample segment, the baseline correctly identifies
+$55$, misclassifies $4$, and hallucinates none. The residual model
+identifies all $59$ events correctly without hallucinating. The
+attention model is competitive but produces two confusions and one
+missed-then-misclassified event.
+
+\paragraph{Where errors live.} The two recurring confusions are between
+templates that share visual primitives:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \texttt{M} can look like \texttt{bell} if its second peak is
+    eroded by deformation;
+    \item \texttt{square} can look like \texttt{bell\_sq} if the corners
+    are softened.
+\end{itemize}
+The residual network, with its larger receptive field and richer feature
+re-use, never makes these confusions on the test segment; the baseline
+and the attention model trip on a few hard examples.
+
+\paragraph{No hallucinations.} A striking feature of all three models
+on this clean test set is that the false-positive rate is essentially
+zero: predicted events that do not overlap a true event are extremely
+rare. We will see in \cref{chap:realdata} that this property collapses
+dramatically on real, almost-pure-background data.
+
+\section{Cost and performance trade-off}
+\label{sec:res-cost}
+
+\Cref{fig:model-cost} summarises the cost--performance trade-off across
+the three architectures. Note the very small spread in training time
+between ResNet and CNN+Attention (about $10$ minutes for $35$ epochs)
+despite the latter having $47\%$ more parameters, reflecting the
+efficiency of GPU-resident attention on short sequences ($T=65$ tokens).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/model_cost}
+    \caption{Cost--performance trade-off across the three architectures.
+    Left: parameter count. Centre: total training time on a single
+    RTX 5060 Laptop GPU. Right: event-level macro F1 on the synthetic
+    test segment. The ResNet is, on this benchmark, the sweet spot:
+    half the parameters of the attention model, a perfect F1, and
+    similar wall-clock time.}
+    \label{fig:model-cost}
+\end{figure}

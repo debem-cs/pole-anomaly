@@ -1,0 +1,49 @@
+\vspace*{2cm}
+\begin{center}
+\textbf{\large Abstract}
+\end{center}
+
+\noindent
+Continuous monitoring of radiological pollution relies on environmental
+surveillance beacons that record the rate of gamma photons reaching a
+detector. The recorded signal is heavily contaminated by sensor noise and
+slow baseline drift, which makes the early identification of anomalous
+radiological events --- spikes, plateaus, ramp-ups, ramp-downs --- a
+non-trivial detection \emph{and} classification problem.
+
+This report documents the work carried out during the \emph{Pôle Projet} at
+CentraleSup\'elec on this subject. The contribution is two-fold. First, a
+\emph{synthetic dataset generator} is built that calibrates a stochastic
+background process on real 2015 gamma dose recordings and injects six
+hand-designed, mathematically parameterised anomaly templates with
+controlled amplitude, duration and shape deformation. The generator
+produces a labelled time series of ten million points, large enough to
+train modern neural networks. Second, three neural network architectures
+of increasing complexity are designed, trained and compared on the
+classification task: a compact \textbf{1D-CNN} (23\,k parameters), a
+\textbf{1D residual network} (75\,k parameters) and a \textbf{hybrid
+CNN+Transformer model with multi-head self-attention} (110\,k parameters).
+
+The three models are evaluated at the level of individual events, not
+individual samples, which better matches operational use. On a held-out
+synthetic test segment containing 59 events, all three models achieve
+strong performance, with the residual network reaching $100\%$
+event-level macro F1, the attention model reaching $95.5\%$, and the
+baseline 1D-CNN reaching $93.4\%$. A dedicated robustness study reveals
+that residual connections and self-attention substantially improve
+graceful degradation when the background noise or the anomaly shape
+moves outside the training distribution. Finally, the models are run on
+unlabelled real 2015 data: this stress-test exposes a clear
+\emph{distribution shift} between the densely-injected synthetic training
+set and the sparse, almost purely-noise real signal, and we analyse the
+consequences --- including a degenerate collapse of the attention model
+to one class --- with concrete recommendations for the next iteration of
+the project.
+
+\vfill
+\begin{center}
+\small
+\textit{Keywords:} time series classification, 1D convolutional neural
+networks, residual networks, self-attention, transformer encoder,
+radiological monitoring, synthetic data generation, distribution shift.
+\end{center}

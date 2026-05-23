@@ -1,0 +1,125 @@
+\chapter{Introduction}
+\label{chap:intro}
+
+\section{Context: continuous radiological surveillance}
+\label{sec:context}
+
+Environmental monitoring beacons measure the local radiation level by
+counting the gamma photons reaching a scintillation detector in a fixed
+sampling interval --- typically one minute. The resulting time series,
+called the \emph{gamma dose}, reflects the natural radioactive background
+of the environment, modulated by atmospheric conditions (temperature,
+humidity, pressure) and, hopefully rarely, by accidental or deliberate
+radiological events such as the dispersion of a radioactive plume, a
+leak from a nearby facility, or the passage of a contaminated source.
+
+The operational goal of a network of such beacons is to detect and
+classify those rare events \emph{as early as possible}, so that
+mitigation decisions can be taken with confidence. Three properties make
+this task fundamentally harder than industrial anomaly detection in
+mechanical or financial time series:
+
+\begin{enumerate}[leftmargin=*, itemsep=0.2em]
+    \item \textbf{High noise-to-signal ratio.} The Poisson-like sensor
+    statistics produce a high-frequency dispersion that is comparable in
+    magnitude to many anomalies of interest.
+    \item \textbf{Slow baseline drift.} The mean radiological background
+    is not stationary --- it slowly wanders with weather and seasonal
+    factors, so an anomaly cannot be defined by a fixed threshold on the
+    raw signal.
+    \item \textbf{Class diversity.} Different physical phenomena leave
+    different temporal signatures: a sudden spike (a passing source),
+    a slow ramp-up (a slowly approaching plume), a sustained plateau (a
+    deposited contamination), and so on. A meaningful response requires
+    not just detection but classification.
+\end{enumerate}
+
+\section{Problem statement}
+\label{sec:problem}
+
+The project, supervised by Élisabeth Lahalle at the \emph{Laboratoire des
+Signaux et Systèmes} (L2S, CentraleSup\'elec), formulates the problem as
+a \textbf{streaming multi-class classification task} on a univariate
+gamma-dose time series. Given a sliding window of recent samples, the
+system must output one of seven labels:
+\begin{center}
+\texttt{Normal Background} ~|~ \texttt{bell} ~|~ \texttt{bell\_sq} ~|~ \texttt{fast\_ascend} ~|~ \texttt{fast\_descend} ~|~ \texttt{M} ~|~ \texttt{square}.
+\end{center}
+
+The first six anomaly classes correspond to canonical shapes identified
+together with the supervisor as representative of the radiological
+phenomena one might encounter on a beacon. Their precise mathematical
+parameterisation is given in \cref{chap:data}.
+
+\section{Why deep learning?}
+\label{sec:why-dl}
+
+A classical signal-processing pipeline --- baseline removal followed by
+a hand-tuned shape-matching template bank --- would in principle suffice
+on clean shapes, but it would scale poorly to:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \emph{Shape variability}: real events do not match a template
+    perfectly; their amplitude, duration and time-warping vary.
+    \item \emph{Noise}: at the noise levels observed in the real data,
+    cross-correlation with a template becomes unreliable.
+    \item \emph{Class proliferation}: adding a new event class requires
+    redesigning the bank.
+\end{itemize}
+
+Deep neural networks are attractive because they learn \emph{their own}
+features from data, and because the convolutional and attention building
+blocks of modern architectures are very effective at recognising
+patterns in 1D signals. The reference project brief\footnote{See
+\texttt{biblio/projet.pdf}.} explicitly suggests evaluating
+convolutional and attention layers, and we follow that guidance.
+
+\section{Contributions}
+\label{sec:contributions}
+
+Concretely, this project produces:
+\begin{enumerate}[leftmargin=*, itemsep=0.3em]
+    \item A \textbf{statistical characterisation} of four months of real
+    2015 gamma dose recordings, from which we extract a usable noise
+    model (Gaussian high-frequency component and Ornstein--Uhlenbeck
+    baseline drift, \cref{sec:real-data}).
+    \item A \textbf{synthetic data generator} that injects six
+    parameterised anomaly templates with controlled amplitude, duration
+    and shape deformation into a ten-million-point simulated signal
+    (\cref{chap:data}).
+    \item Three \textbf{PyTorch architectures} of increasing complexity
+    --- a baseline 1D-CNN, a residual variant, and a hybrid
+    CNN+Transformer model with multi-head self-attention --- all sharing
+    the same I/O contract (\cref{chap:archi}).
+    \item A \textbf{training and event-level evaluation pipeline} that
+    bridges the gap between sample-wise classification accuracy and
+    operational event-detection metrics (\cref{chap:archi-train,chap:results}).
+    \item A dedicated \textbf{robustness study} that sweeps background
+    noise and shape deformation independently and reports the
+    F1-degradation curves of all three architectures
+    (\cref{chap:robustness}).
+    \item Application of the trained models to real, unlabelled 2015
+    data, together with a careful \textbf{diagnostic analysis} of where
+    and why they fail in the real world, leading to concrete
+    recommendations (\cref{chap:realdata}).
+\end{enumerate}
+
+\section{Report organisation}
+\label{sec:org}
+
+The report is laid out in six parts. \cref{chap:theory} provides the
+theoretical background --- convolutions, residual learning, attention
+mechanisms and the relevant training machinery --- with enough
+mathematical detail to make the architectures self-contained for a
+reader without a deep-learning background. \cref{chap:data} describes
+the real data and the synthetic generator built from it.
+\cref{chap:archi,chap:archi-train} present the three neural networks
+and how they are trained. \cref{chap:results,chap:robustness} report
+the quantitative results, first on a clean test segment then under
+controlled stress. \cref{chap:realdata} discusses the qualitative
+behaviour on real recordings and the open questions that remain.
+\cref{chap:conclusion} concludes and lists the next steps that are
+on the table for the project's next iteration.
+
+All code, data generation scripts and figure-generation utilities
+necessary to reproduce the contents of this report are included in the
+project repository.

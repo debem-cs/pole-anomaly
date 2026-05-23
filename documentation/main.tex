@@ -1,0 +1,43 @@
+\documentclass[11pt, openany]{report}
+
+\input{preamble}
+
+\title{
+    \vspace{2cm}
+    {\Large \textbf{Dynamic Monitoring of Radiological Pollution\\
+    through Deep Learning}}\\[0.6em]
+    {\large Anomaly classification in noisy gamma-dose time series}
+}
+\author{
+    Pedro \\[0.4em]
+    \small CentraleSup\'elec --- Pôle Projet \\
+    \small Supervised by \textsc{Elisabeth Lahalle} (L2S, CentraleSup\'elec)
+}
+\date{May 2026}
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+\input{sections/00_abstract}
+
+\newpage
+\tableofcontents
+\listoffigures
+
+\input{sections/01_introduction}
+\input{sections/02_theory}
+\input{sections/03_data}
+\input{sections/04_architectures}
+\input{sections/05_results}
+\input{sections/06_robustness}
+\input{sections/07_real_inference}
+\input{sections/08_conclusion}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\input{sections/09_appendix}
+
+\end{document}

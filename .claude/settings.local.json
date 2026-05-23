@@ -4,7 +4,14 @@
       "Bash(pdflatex -interaction=nonstopmode -halt-on-error project_overview.tex)",
       "Bash(pdflatex -interaction=nonstopmode project_overview.tex)",
       "Bash(python affichage_donnees.py)",
-      "Bash(py affichage_donnees.py)"
+      "Bash(py affichage_donnees.py)",
+      "Bash(py documentation/figures/build_figures.py)",
+      "Bash(py -c ' *)",
+      "PowerShell(Get-Command pdflatex -ErrorAction SilentlyContinue)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\Pedro\\\\My Drive\\\\centrale-supelec\\\\pole-anomaly\\\\documentation\"; pdflatex -interaction=nonstopmode -halt-on-error main.tex > $null 2>&1; pdflatex -interaction=nonstopmode -halt-on-error main.tex 2>&1 | Select-String -Pattern \"Output written|Overfull|Error|Undefined\" | ForEach-Object { $_.Line })",
+      "Bash(py data-gen/analysis/data_loader.py)",
+      "Bash(py data-gen/analysis/analyze_background.py)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\Pedro\\\\My Drive\\\\centrale-supelec\\\\pole-anomaly\"; Start-Sleep -Seconds 180; Get-Process python -ErrorAction SilentlyContinue | Format-Table Id, CPU -AutoSize; \\(Get-Item \"data-gen\\\\analysis\\\\logs\\\\analysis_summary.txt\"\\).Length)"
     ]
   }
 }
