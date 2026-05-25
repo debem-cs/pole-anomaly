@@ -7,29 +7,29 @@
 Environmental monitoring beacons measure the local radiation level by
 counting the gamma photons reaching a scintillation detector in a fixed
 sampling interval --- typically one minute. The resulting time series,
-called the \emph{gamma dose}, reflects the natural radioactive background
-of the environment, modulated by atmospheric conditions (temperature,
-humidity, pressure) and, hopefully rarely, by accidental or deliberate
-radiological events such as the dispersion of a radioactive plume, a
-leak from a nearby facility, or the passage of a contaminated source.
+called the \emph{gamma dose}, reflects the natural radioactive
+background, modulated by atmospheric conditions (temperature, humidity,
+pressure) and, hopefully rarely, by accidental or deliberate
+radiological events: dispersal of a radioactive plume, a leak from a
+nearby facility, the passage of a contaminated source.
 
 The operational goal of a network of such beacons is to detect and
-classify those rare events \emph{as early as possible}, so that
-mitigation decisions can be taken with confidence. Three properties make
-this task fundamentally harder than industrial anomaly detection in
-mechanical or financial time series:
+classify those rare events \emph{as early as possible} so that
+mitigation decisions can be taken with confidence. Three properties
+make this task fundamentally harder than industrial anomaly detection
+in mechanical or financial time series:
 
 \begin{enumerate}[leftmargin=*, itemsep=0.2em]
-    \item \textbf{High noise-to-signal ratio.} The Poisson-like sensor
-    statistics produce a high-frequency dispersion that is comparable in
-    magnitude to many anomalies of interest.
+    \item \textbf{High noise-to-signal ratio.} The sensor statistics
+    produce a high-frequency dispersion that is comparable in magnitude
+    to many anomalies of interest.
     \item \textbf{Slow baseline drift.} The mean radiological background
-    is not stationary --- it slowly wanders with weather and seasonal
-    factors, so an anomaly cannot be defined by a fixed threshold on the
-    raw signal.
+    is not stationary --- it wanders slowly with weather and seasonal
+    factors, so an anomaly cannot be defined by a fixed threshold on
+    the raw signal.
     \item \textbf{Class diversity.} Different physical phenomena leave
     different temporal signatures: a sudden spike (a passing source),
-    a slow ramp-up (a slowly approaching plume), a sustained plateau (a
+    a slow ramp-up (an approaching plume), a sustained plateau (a
     deposited contamination), and so on. A meaningful response requires
     not just detection but classification.
 \end{enumerate}
@@ -37,26 +37,34 @@ mechanical or financial time series:
 \section{Problem statement}
 \label{sec:problem}
 
-The project, supervised by Élisabeth Lahalle at the \emph{Laboratoire des
-Signaux et Systèmes} (L2S, CentraleSup\'elec), formulates the problem as
-a \textbf{streaming multi-class classification task} on a univariate
-gamma-dose time series. Given a sliding window of recent samples, the
-system must output one of seven labels:
+The project, supervised by Élisabeth Lahalle at the \emph{Laboratoire
+des Signaux et Systèmes} (L2S, CentraleSup\'elec), formulates the
+problem as a \textbf{streaming multi-class classification task} on a
+univariate gamma-dose time series. Given a sliding window of recent
+samples, the system must output one class label per window. The label
+set evolved between the two iterations of the project:
+
 \begin{center}
-\texttt{Normal Background} ~|~ \texttt{bell} ~|~ \texttt{bell\_sq} ~|~ \texttt{fast\_ascend} ~|~ \texttt{fast\_descend} ~|~ \texttt{M} ~|~ \texttt{square}.
+\begin{tabular}{ll}
+v1 (seven classes) & \texttt{Normal} ~|~ \texttt{bell} ~|~ \texttt{bell\_sq} ~|~
+                     \texttt{fast\_ascend} ~|~ \texttt{fast\_descend} ~|~
+                     \texttt{M} ~|~ \texttt{square} \\[0.4em]
+v2 (four classes)  & \texttt{Normal} ~|~ \texttt{bell} ~|~
+                     \texttt{fast\_ascend} ~|~ \texttt{fast\_descend}
+\end{tabular}
 \end{center}
 
-The first six anomaly classes correspond to canonical shapes identified
-together with the supervisor as representative of the radiological
-phenomena one might encounter on a beacon. Their precise mathematical
-parameterisation is given in \cref{chap:data}.
+The reasons for shrinking the class set in v2 will become clear in
+\cref{chap:reanalysis,chap:v2gen}: only the three retained shapes
+actually appear in the seventeen plausible events that we
+hand-labelled on the real recordings.
 
 \section{Why deep learning?}
 \label{sec:why-dl}
 
 A classical signal-processing pipeline --- baseline removal followed by
-a hand-tuned shape-matching template bank --- would in principle suffice
-on clean shapes, but it would scale poorly to:
+a hand-tuned shape-matching template bank --- would in principle
+suffice on clean shapes, but it scales poorly to:
 \begin{itemize}[leftmargin=*, itemsep=0.2em]
     \item \emph{Shape variability}: real events do not match a template
     perfectly; their amplitude, duration and time-warping vary.
@@ -66,59 +74,98 @@ on clean shapes, but it would scale poorly to:
     redesigning the bank.
 \end{itemize}
 
-Deep neural networks are attractive because they learn \emph{their own}
-features from data, and because the convolutional and attention building
-blocks of modern architectures are very effective at recognising
-patterns in 1D signals. The reference project brief\footnote{See
+Deep neural networks learn their own features from data, and the
+convolutional and attention building blocks of modern architectures
+are very effective at recognising local and global patterns in 1D
+signals. The reference project brief\footnote{See
 \texttt{biblio/projet.pdf}.} explicitly suggests evaluating
-convolutional and attention layers, and we follow that guidance.
+convolutional and attention layers, which we did.
+
+\section{The two iterations}
+\label{sec:two-iters}
+
+This report covers two iterations of the same end-to-end pipeline.
+
+\paragraph{Iteration 1 (v1).} A noise model fitted on the four months
+of 2015 data --- IID Gaussian high-frequency component on an
+Ornstein--Uhlenbeck baseline --- and six hand-designed anomaly
+templates, injected at a density of $\sim 7$ events per $10\text{k}$
+samples into a $10^{7}$-sample synthetic signal. Three architectures
+of increasing complexity (1D-CNN, ResNet 1D, CNN+Attention) were
+trained on this corpus. On the synthetic test set the system worked
+very well: all three architectures cleared a $90\%$ event-level macro
+F1, the residual network reached $100\%$. But on the real recordings
+the system failed dramatically, in three architecture-specific ways.
+
+\paragraph{Iteration 2 (v2).} A re-analysis of the real background
+revealed that the high-frequency residual is autocorrelated rather than
+white, well described by an AR(1) process with $\varphi \approx 0.86$.
+A round of hand-labelling identified $17$ plausible events across the
+four months, from which we measured empirical event amplitudes
+(log-uniform $[15, 40]$ counts), durations (log-uniform $[30, 1000]$
+samples), and a template breakdown (only \texttt{bell},
+\texttt{fast\_ascend}, \texttt{fast\_descend} appear). The generator
+was re-tuned accordingly --- AR(1) noise, sparser injection
+($\sim 1.5$ events per $10\text{k}$ samples), three templates, absolute
+amplitude/duration scales --- and the same three architectures were
+re-trained on the new corpus. On the real recordings, the v2 models
+sit on the \texttt{Normal Background} class for the quiet stretches and
+fire only where a visible event is present.
 
 \section{Contributions}
 \label{sec:contributions}
 
-Concretely, this project produces:
-\begin{enumerate}[leftmargin=*, itemsep=0.3em]
-    \item A \textbf{statistical characterisation} of four months of real
-    2015 gamma dose recordings, from which we extract a usable noise
-    model (Gaussian high-frequency component and Ornstein--Uhlenbeck
-    baseline drift, \cref{sec:real-data}).
-    \item A \textbf{synthetic data generator} that injects six
-    parameterised anomaly templates with controlled amplitude, duration
-    and shape deformation into a ten-million-point simulated signal
-    (\cref{chap:data}).
+Concretely, this project produced:
+\begin{enumerate}[leftmargin=*, itemsep=0.2em]
+    \item A \textbf{statistical characterisation} of four months of
+    real 2015 gamma-dose recordings, in two passes of increasing depth:
+    a v1 fit of an IID-Gaussian-plus-OU model, and a v2 reanalysis that
+    establishes the AR(1) structure of the high-frequency residual
+    (\cref{chap:data,chap:reanalysis}).
+    \item A \textbf{set of seventeen hand labels} of plausible real
+    events, with empirical amplitudes, durations and shape assignments
+    (\cref{sec:reanalysis-labels}).
+    \item Two generations of a \textbf{synthetic dataset generator}: v1
+    (white noise, six templates, dense injection) and v2 (AR(1) noise,
+    three templates, sparse injection, calibrated against the labels).
+    Both produce a $10^{7}$-sample labelled signal in constant memory
+    (\cref{chap:v1gen,chap:v2gen}).
     \item Three \textbf{PyTorch architectures} of increasing complexity
-    --- a baseline 1D-CNN, a residual variant, and a hybrid
-    CNN+Transformer model with multi-head self-attention --- all sharing
-    the same I/O contract (\cref{chap:archi}).
-    \item A \textbf{training and event-level evaluation pipeline} that
-    bridges the gap between sample-wise classification accuracy and
-    operational event-detection metrics (\cref{chap:archi-train,chap:results}).
-    \item A dedicated \textbf{robustness study} that sweeps background
-    noise and shape deformation independently and reports the
-    F1-degradation curves of all three architectures
-    (\cref{chap:robustness}).
-    \item Application of the trained models to real, unlabelled 2015
-    data, together with a careful \textbf{diagnostic analysis} of where
-    and why they fail in the real world, leading to concrete
-    recommendations (\cref{chap:realdata}).
+    --- a baseline 1D-CNN ($\sim 23\text{k}$ params), a residual network
+    ($\sim 75\text{k}$), and a hybrid CNN+Transformer with multi-head
+    self-attention ($\sim 110\text{k}$) --- all sharing the same I/O
+    contract (\cref{chap:archi}).
+    \item A \textbf{training and event-level evaluation pipeline}
+    bridging sample-wise classification accuracy and operational
+    event-detection metrics (\cref{chap:archi}).
+    \item Quantitative \textbf{synthetic-test results} for v1 and v2,
+    and a \textbf{robustness study} that sweeps background noise and
+    shape deformation independently for both (\cref{chap:v1results,%
+    chap:results,chap:robustness}).
+    \item Application of both v1 and v2 models to the real 2015 data,
+    with a careful \textbf{diagnostic analysis} of where v1 fails and
+    how v2 closes the gap qualitatively
+    (\cref{chap:v1real,chap:v2real}).
 \end{enumerate}
 
 \section{Report organisation}
 \label{sec:org}
 
-The report is laid out in six parts. \cref{chap:theory} provides the
-theoretical background --- convolutions, residual learning, attention
-mechanisms and the relevant training machinery --- with enough
-mathematical detail to make the architectures self-contained for a
-reader without a deep-learning background. \cref{chap:data} describes
-the real data and the synthetic generator built from it.
-\cref{chap:archi,chap:archi-train} present the three neural networks
-and how they are trained. \cref{chap:results,chap:robustness} report
-the quantitative results, first on a clean test segment then under
-controlled stress. \cref{chap:realdata} discusses the qualitative
-behaviour on real recordings and the open questions that remain.
-\cref{chap:conclusion} concludes and lists the next steps that are
-on the table for the project's next iteration.
+\Cref{chap:theory} provides the theoretical background ---
+convolutions, residual learning, attention mechanisms, and the relevant
+training machinery --- with enough mathematical detail to make the
+architectures self-contained for a reader without a deep-learning
+background. \Cref{chap:data} describes the real 2015 recordings and
+the v1 noise model that the project initially fitted to them.
+\Cref{chap:v1gen} presents the v1 synthetic generator; \cref{chap:archi}
+the three networks shared between v1 and v2;
+\cref{chap:v1results,chap:v1real} the v1 synthetic-test results and
+the real-data failure that motivated v2. \Cref{chap:reanalysis} is the
+re-analysis chapter --- AR(1) noise, hand labels, what was missing in
+v1. \Cref{chap:v2gen} documents the v2 generator. \Cref{chap:results,%
+chap:robustness,chap:v2real} report the v2 results: training,
+event-level evaluation, robustness sweeps, real-data inference.
+\Cref{chap:conclusion} concludes.
 
 All code, data generation scripts and figure-generation utilities
 necessary to reproduce the contents of this report are included in the

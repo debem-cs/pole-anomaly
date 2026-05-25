@@ -23,8 +23,10 @@ training ingredients that all three networks share
 
 Let $x \in \R^N$ denote the gamma-dose signal sampled at uniform
 intervals (one minute, in our case). We want to assign each sample
-$x_t$ to one of $K=7$ classes (six anomaly types plus the normal
-background).
+$x_t$ to one of $K$ classes: in the first iteration of the project
+$K = 7$ (six anomaly templates plus a \texttt{Normal Background}
+class), and in the second iteration the template family was pruned
+to $K = 4$.
 
 \paragraph{Windowing.} Operating on a single sample is hopeless: the
 classes are defined by the temporal \emph{shape} of an event, not by
@@ -52,19 +54,10 @@ Because a single window may contain a mixture of background and event
 samples, we follow a simple rule: the window inherits the most frequent
 non-zero label inside it if more than $10\%$ of its samples are
 anomalous, and is labelled \texttt{Normal Background} otherwise
-(\cref{fig:sliding-window}). This makes the boundaries of events
-slightly fuzzy --- a deliberate choice that helps the network
-generalise to events whose exact start and end are uncertain.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\linewidth]{figures/sliding_window}
-    \caption{Sliding-window construction on a fragment of the synthetic
-    signal. Each coloured bar represents one $512$-sample training
-    window; red bars indicate windows that contain more than $10\%$
-    anomaly points, so they inherit the underlying class label.}
-    \label{fig:sliding-window}
-\end{figure}
+(see \cref{fig:sliding-window} in \cref{sec:archi-train}). This makes
+the boundaries of events slightly fuzzy --- a deliberate choice that
+helps the network generalise to events whose exact start and end are
+uncertain.
 
 \paragraph{Mathematical objective.}
 Letting $f_\theta : \R^W \to \R^K$ denote the network with parameters
@@ -431,13 +424,11 @@ inversely proportional to the class frequency,
     w_c = \frac{N}{K \cdot n_c},
 \end{equation}
 where $n_c$ is the count of class $c$ in the training set and $N$ is
-the total count. In our experiments this gives weights
-$\mathbf{w} = (0.46, 1.18, 1.27, 1.32, 1.24, 1.15, 1.31)$ for the seven
-classes: the \texttt{Normal} class is down-weighted by about a factor
-of two relative to the anomaly classes. We will see in
-\cref{chap:realdata} that this choice, harmless on the synthetic test
-set, becomes problematic at deployment time because of the dramatic
-class prior shift in the real data.
+the total count. The numerical values that this rule produces are
+reported, for both v1 and v2, in the dedicated training sections; they
+will play a non-trivial role at deployment because the
+training-vs-deployment class prior shift is the dominant cause of v1's
+failure on real data (\cref{chap:v1real}).
 
 \subsection{Adam optimiser}
 \label{sec:adam-theory}
@@ -512,5 +503,5 @@ The same $\sigma_{\text{train}}$ is used at inference; saving it in a
 JSON file alongside the model weights guarantees deterministic and
 reproducible scaling between training and deployment. This window-level
 centring is a strong inductive bias --- the network only ever sees
-deviations from the local baseline --- but it has a hidden cost that
-becomes apparent in \cref{chap:realdata}.
+deviations from the local baseline --- and the consequences of that
+bias on long sustained events will surface in \cref{chap:v1real}.

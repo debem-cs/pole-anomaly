@@ -1,0 +1,171 @@
+\chapter{Conclusion and future work}
+\label{chap:conclusion}
+
+\section{Summary of contributions}
+\label{sec:conc-summary}
+
+This project tackled the problem of detecting and classifying
+radiological anomalies in noisy gamma-dose time series, starting from
+four months of real 2015 recordings. The work split into two
+iterations:
+
+\paragraph{Iteration 1 (v1)} fitted an IID-Gaussian-plus-Ornstein--
+Uhlenbeck noise model on the real data, designed six anomaly templates
+and a dense ($\sim 7$ events / $10\text{k}$ samples) synthetic
+generator, trained three PyTorch architectures (1D-CNN, ResNet 1D,
+CNN+Attention) on a $10^{7}$-sample synthetic corpus, and built the
+end-to-end event-level evaluation, robustness sweep, and real-data
+inference pipelines that the rest of the project re-uses. On the
+synthetic benchmark, all three architectures cleared $90\%$
+event-level F1 (the ResNet reaching $100\%$); on the real data, all
+three failed in different architecture-specific ways.
+
+\paragraph{Iteration 2 (v2)} produced a deeper background re-analysis
+that exposed the v1 noise model's blind spot (the residual is an
+AR(1) process with $\varphi \approx 0.86$, not white), hand-labelled
+$17$ plausible events across the four months to constrain the
+empirical event distribution (durations $[32, 1014]$ samples,
+amplitudes $[11, 37]$ counts, only three of the six v1 templates
+have an empirical counterpart), and re-designed the synthetic
+generator to match all of these targets simultaneously. Retrained on
+this corpus, the three architectures sit on the \texttt{Normal} class
+on the quiet stretches of the real signal and fire only where a
+visible event is present.
+
+\section{Architecture recommendation}
+\label{sec:conc-archi}
+
+On the v2 synthetic benchmark the three architectures cluster at the
+same event-level macro F1 ($\sim 86\%$), so the synthetic numbers do
+not separate them. The separation appears on two other axes:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \textbf{Robustness} (\cref{chap:robustness}): the residual
+    and attention models degrade much more gracefully under
+    background-noise growth than the baseline 1D-CNN, which collapses
+    to a single-class plateau already at $m_{\text{noise}} \approx 2$.
+    \item \textbf{Real-data behaviour} (\cref{chap:v2real}): the three
+    models look qualitatively similar on the v2 real-data plots, but
+    the ResNet is the cleanest --- the v2 ResNet is the one whose
+    background confidence stays closest to $100\%$ on the quiet
+    stretches without any of the residual jitter the 1D-CNN still
+    shows.
+\end{itemize}
+
+If a single architecture must be picked for the next iteration, the
+recommendation is \textbf{ResNet 1D}: highest robustness, cleanest
+real-data inference, and a parameter count ($\sim 75\text{k}$) small
+enough to retrain in under ten minutes on a laptop GPU. The
+CNN+Attention model is kept in the pipeline as the most promising
+candidate for longer-window analyses (\cref{sec:future-attention}).
+The baseline 1D-CNN is the fastest to train but its noise fragility
+makes it unfit for a beacon that must run across seasons.
+
+\section{Limitations}
+\label{sec:conc-limits}
+
+Several known limitations of the current pipeline are worth recording
+explicitly.
+
+\begin{itemize}[leftmargin=*, itemsep=0.25em]
+    \item \textbf{No real ground truth.} The four months of real data
+    have no expert labelling, so we have no quantitative measure of
+    how the v2 models do on real anomalies. The qualitative inspection
+    in \cref{chap:v2real} is the best we can do for now.
+    \item \textbf{Short events.} The v2 event-level extractor loses
+    sensitivity on events shorter than $\sim 50$ samples, even though
+    the v2 generator is calibrated to produce events as short as $30$.
+    This is the four missed events of \cref{tab:v2-event-prf}.
+    \item \textbf{Single beacon.} The pipeline assumes a univariate
+    time series. Real surveillance networks involve several beacons
+    and several covariates (temperature, humidity, pressure).
+    Exploiting these as additional input channels is left for future
+    work.
+    \item \textbf{Black-box decisions.} The trained models output a
+    class label but not a justification. The architectures expose the
+    relevant hooks (\texttt{last\_conv\_features}) but a Grad-CAM
+    analysis is left for the next iteration.
+\end{itemize}
+
+\section{Future work}
+\label{sec:conc-future}
+
+\subsection{Expert labelling of real events}
+
+The single highest-value item is expert labelling of the real
+recordings. The current $17$ provisional labels are sufficient to
+constrain the marginal distributions used by the v2 generator and to
+validate the v2 inference qualitatively, but a real test set
+--- ideally on more than the four available months, since seasonal
+effects on the background are visible in \cref{tab:reanal-drift} ---
+would let us replace ``v2 looks better than v1'' by a measured number.
+
+\subsection{Self-supervised pre-training on the real signal}
+
+A natural way to bridge the residual synthetic--real gap is to
+pre-train the convolutional stem on the four (and ideally more) months
+of real, unlabelled data, using a self-supervised objective such as
+masked-segment reconstruction. The stem then learns features adapted
+to the real signal statistics; only the classifier head needs to be
+fine-tuned on the synthetic dataset.
+
+\subsection{Longer windows and stronger attention}
+\label{sec:future-attention}
+
+The CNN+Attention model did not benefit from its long-range mixing on
+$512$-sample windows because the v2 templates rarely extend past
+$\sim 1\,000$ samples. With longer windows ($W = 4\,096$ or more), the
+attention model could in principle disambiguate close events, reason
+about context (a slow ramp during which a sharp spike occurs), and
+detect multi-event episodes. Scaling the attention up requires the
+usual care (longer sinusoidal encoding, more heads or layers, possibly
+linear-complexity attention variants) but the architecture is already
+in place.
+
+\subsection{An ``unknown but not Normal'' class}
+
+The v2 generator is still binary in spirit: a window either contains a
+clean templated event or pure stationary background. Real recordings
+contain a richer family of intermediate signals (a slow drift, an
+outlier sample, a brief sensor wobble). Introducing a synthetic
+template family for ``noise-like but not Normal'' signals (single-sample
+spikes, slow ramps below the v2 amplitude floor, sensor dropouts) would
+give the network somewhere to put its confidence when the input is not
+\texttt{Normal} but does not match any radiological template either.
+
+\subsection{Explainability with Grad-CAM and attention visualisation}
+
+The two convolutional architectures expose their last convolutional
+layer as \texttt{last\_conv\_features}, ready to be hooked by a
+Grad-CAM implementation. For the attention model, the attention
+matrices themselves are interpretable saliency maps over the token
+sequence. Adding both to the inference scripts would let the
+supervisor visually verify that the model is paying attention to the
+right part of an event when it predicts a class.
+
+\subsection{Multi-beacon and multi-modal extensions}
+
+A practical surveillance system never works with a single signal in
+isolation; pressure, temperature, humidity and the gamma counts of
+neighbouring beacons are all informative. Extending the input to a
+small number of channels is mechanical (the convolutions are already
+multi-channel by design); the harder problem is collecting a labelled
+multi-modal dataset, which the synthetic generator could be extended
+to produce.
+
+\section{Final words}
+\label{sec:conc-final}
+
+The project ended in a much better place than it started, but the
+trajectory is the most informative output. On the benchmark we
+designed for ourselves the v1 system worked very well --- all three
+architectures cross the $90\%$ event-level F1 line, the residual
+network is flawless. On the real data, v1 failed dramatically and in
+three architecture-specific ways. The honest negative result, and the
+diagnostic infrastructure built around it, are what allowed the v2
+re-analysis to be sharp enough to fix the right problem. The single
+most useful methodological lesson is therefore: \emph{do not benchmark
+a deep model on the same kind of data it was trained on, and call it
+done}. The first contact with real data is what revealed where the
+pipeline really stood, and the diagnostic infrastructure built to make
+that contact diagnosable is, in the long run, the most valuable output
+of the project.

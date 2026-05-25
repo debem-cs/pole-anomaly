@@ -40,10 +40,10 @@ time,value,t_minus,t_plus,v_minus,v_plus,interp
 1.0,0.0,0,0,0,0,linear
 \end{lstlisting}
 
-The first and last keypoints have all jitter flags off, so the template
-always starts and ends at $(0,0)$ and $(1,0)$. The middle keypoint can
-jitter in both time and amplitude; the two half-cosine segments make
-the curve smooth.
+The first and last keypoints have all jitter flags off, so the
+template always starts and ends at $(0,0)$ and $(1,0)$. The middle
+keypoint can jitter in both time and amplitude; the two half-cosine
+segments make the curve smooth.
 
 \section{Hyperparameter reference}
 \label{app:hp}
@@ -51,32 +51,55 @@ the curve smooth.
 \subsection{Data generator}
 \label{app:hp-gen}
 
+\Cref{tab:v1-vs-v2-config} compares the v1 and v2 generator
+configurations side by side.
+
 \begin{table}[H]
     \centering
     \footnotesize
-    \begin{tabular}{lll}
+    \begin{tabular}{lcc}
         \toprule
-        Group & Parameter & Value \\
+        Parameter & v1 & v2 \\
         \midrule
-        \multirow{2}{*}{Size}     & Total points          & $10^{7}$ \\
-                                   & Chunk size            & $5 \cdot 10^{4}$ \\
+        Total points          & $10^{7}$ & $10^{7}$ \\
+        Chunk size            & $5 \cdot 10^{4}$ & $5 \cdot 10^{4}$ \\
         \midrule
-        \multirow{2}{*}{Anomalies}& Number of injections  & uniform in $[5\,000, 8\,000]$ \\
-                                   & Injection jitter      & $\pm 200$ samples \\
+        Number of injections  & $\sim [5{,}000, 8{,}000]$
+                              & $\sim [1{,}300, 1{,}700]$ \\
+        Injection jitter      & $\pm 200$ samples
+                              & $\pm 400$ samples \\
+        Anomaly density       & $\sim 7$ / $10$k samples
+                              & $\sim 1.5$ / $10$k samples \\
         \midrule
-        \multirow{3}{*}{Shapes}   & Amplitude (in $\sigma$) & uniform in $[2.5, 7.6]$ \\
-                                   & Period (samples)        & uniform in $[200, 800]$ \\
-                                   & Deformation variance    & uniform in $[0.02, 0.10]$ \\
+        Amplitude range       & uniform in $\sigma \cdot [2.5, 7.6]$
+                              & log-uniform in $[15, 40]$ counts (abs.) \\
+        Duration range        & uniform in $[200, 800]$ samples
+                              & log-uniform in $[30, 1000]$ samples \\
+        Deformation $\nu$     & uniform in $[0.02, 0.10]$
+                              & uniform in $[0.02, 0.10]$ \\
         \midrule
-        \multirow{4}{*}{Background}& Global mean $\mu$    & $99.26$ \\
-                                   & HF noise std $\sigma$ & $2.53$ \\
-                                   & OU $\theta$           & $4 \cdot 10^{-6}$ \\
-                                   & OU $\sigma_{\mathrm{OU}}$ & $0.0373$ \\
+        HF noise model        & IID $\mathcal{N}(0, \sigma^2)$
+                              & AR(1) $\varphi = 0.86$,
+                                $\sigma_\varepsilon = 1.12$ \\
+        HF noise std $\sigma$ & $2.53$ & $2.30$ (marginal of AR(1)) \\
+        OU $\theta$           & $4 \cdot 10^{-6}$
+                              & $2.5 \cdot 10^{-5}$ \\
+        OU $\sigma_{\mathrm{OU}}$ & $0.0373$
+                              & $0.007$ \\
+        Global mean $\mu$     & $99.26$ (fixed)
+                              & $99.3 \pm 1.5$ (per-recording) \\
+        \midrule
+        Templates             & 6 (\texttt{bell}, \texttt{bell\_sq},
+                                \texttt{fast\_ascend},
+                                \texttt{fast\_descend},
+                                \texttt{M}, \texttt{square})
+                              & 3 (\texttt{bell}, \texttt{fast\_ascend},
+                                \texttt{fast\_descend}) \\
+        Classes $K$           & 7 & 4 \\
         \bottomrule
     \end{tabular}
-    \caption{Configuration of \texttt{generate\_custom\_dataset.py} used
-    to produce the dataset for this report.}
-    \label{tab:gen-config}
+    \caption{Configuration of the v1 and v2 generators.}
+    \label{tab:v1-vs-v2-config}
 \end{table}
 
 \subsection{Training}
@@ -92,10 +115,11 @@ the curve smooth.
         Window size $W$                          & $512$ samples \\
         Sliding-window stride at training        & $32$ samples \\
         Sliding-window stride at inference       & $10$ samples \\
-        Window labelling threshold               & $10\%$ anomaly points \\
+        Window labelling threshold               & $10\%$ anomaly samples \\
         Per-window normalisation                 & subtract window mean, divide by global $\sigma_{\mathrm{train}}$ \\
-        $\sigma_{\mathrm{train}}$ used in this report & $4.21$ \\
-        Train/val/test split                     & temporal $80/20$ then random $80/20$ on train \\
+        $\sigma_{\mathrm{train}}$ (v1)           & $4.21$ \\
+        $\sigma_{\mathrm{train}}$ (v2)           & $2.88$ \\
+        Train/val/test split                     & temporal $80/20$, then random $80/20$ on train \\
         Optimizer                                & Adam, $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\varepsilon = 10^{-8}$ \\
         Initial learning rate                    & $10^{-3}$ \\
         Batch size                               & $128$ \\
@@ -103,7 +127,8 @@ the curve smooth.
         LR scheduler                             & \texttt{ReduceLROnPlateau}(patience=$2$, factor=$0.5$) \\
         Early stopping                           & patience $10$, min delta $5 \cdot 10^{-3}$ \\
         Loss                                     & weighted categorical cross-entropy \\
-        Class weights $\mathbf{w}$               & $(0.46, 1.18, 1.27, 1.32, 1.24, 1.15, 1.31)$ \\
+        Class weights (v1)                       & $(0.46, 1.18, 1.27, 1.32, 1.24, 1.15, 1.31)$ \\
+        Class weights (v2)                       & $(0.27, 8.51, 9.37, 9.63)$ \\
         \bottomrule
     \end{tabular}
     \caption{Shared training configuration.}
@@ -131,23 +156,24 @@ the curve smooth.
     \label{tab:inf-config}
 \end{table}
 
-\section{Reproducing the contents of this report}
+\section{Reproducing the figures in this report}
 \label{app:reproduce}
 
 The repository layout is:
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize, caption={Top-level project structure.}]
 pole-anomaly/
   biblio/                  - the project brief and reference papers
-  data-gen/                - real data + synthetic generator
+  data-gen/                - v2 data generation and noise reanalysis
     anomaly_generator.py     - template deformation + interpolation
-    generate_custom_dataset.py - end-to-end dataset generator
-    evaluate_real_data.py    - statistical characterisation of real data
+    generate_custom_dataset.py - v2 generator (AR(1) noise, 3 templates)
+    analyze_noise_model.py   - AR(p), Ljung-Box, drift, stability
+    labeling_view.py         - hand-labelling helper
     visualize_anomalies_templates.py
-    interactive_labeling_helper.py
-    anomalies/               - the six template CSV files
-    data/                    - real recordings + generated CSV
+    test_generator_deformation.py
+    anomalies/               - 3 v2 template CSV files
+    data/                    - real recordings + hand labels + v2 synth CSV
     logs/                    - PNG/HTML inspection plots
-  architectures/           - models, training, inference
+  architectures/           - models, training, inference (v2-trained)
     train.py                 - shared training pipeline (selects model)
     visualize_inference.py   - synthetic-test event-level evaluation
     inference_real_data.py   - real-data deployment trial
@@ -156,48 +182,38 @@ pole-anomaly/
     model_selection.py       - model registry & CLI selector
     saved_models/            - 1d_cnn.py, resNet.py, cnn_attention.py
     logs/                    - per-model training/inference outputs
+  pole-anomaly-old/        - v1 generator + v1-trained models
+    data-gen/                - 6 templates, IID Gaussian noise generator
+    architectures/           - v1-trained model checkpoints + logs
   documentation/           - this report
     main.tex, preamble.tex, sections/*.tex
     figures/build_figures.py - reproduces all PNGs in this report
 \end{lstlisting}
 
-The numbers and figures in this report can be reproduced from a clean
-checkout with the following command sequence:
+To rebuild every figure in this report from scratch:
 
 \begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
-# 1. Build the synthetic dataset (about 10 minutes; 600 MB on disk)
-py data-gen/evaluate_real_data.py         # writes data/real_data_params.json
-py data-gen/generate_custom_dataset.py    # writes data/synthetic_custom_dataset.csv
+# Generate v2 synthetic dataset (~10 minutes; 600 MB)
+py data-gen/generate_custom_dataset.py
 
-# 2. Make a copy of the dataset under architectures/data/ as
-#    training_dataset.csv and validation_dataset.csv. (Same file twice is fine
-#    if the user only wants to re-train; the temporal split inside train.py
-#    keeps the test segment leakage-free.)
+# (Optional: re-run noise analysis)
+py data-gen/analyze_noise_model.py
 
-# 3. Train each architecture (~5-10 minutes each on an RTX-class GPU)
+# (Optional: re-train v2 models)
 py architectures/train.py --model 1d_cnn
 py architectures/train.py --model resnet
 py architectures/train.py --model cnn_attention
 
-# 4. Synthetic-test event-level evaluation
+# (Optional: re-run synthetic-test and real-data inference)
 py architectures/visualize_inference.py --model 1d_cnn
-py architectures/visualize_inference.py --model resnet
-py architectures/visualize_inference.py --model cnn_attention
-
-# 5. Robustness sweeps
-py architectures/robustness_test.py --model 1d_cnn
-py architectures/robustness_test.py --model resnet
-py architectures/robustness_test.py --model cnn_attention
-
-# 6. Real-data deployment trial
 py architectures/inference_real_data.py --model 1d_cnn
-py architectures/inference_real_data.py --model resnet
-py architectures/inference_real_data.py --model cnn_attention
+py architectures/robustness_test.py --model 1d_cnn
+# ... same for resnet, cnn_attention
 
-# 7. Rebuild the figures of this report
+# Rebuild the report's figures (uses both new and old logs)
 py documentation/figures/build_figures.py
 
-# 8. Compile the report (with a local TeX install)
+# Compile the report
 cd documentation && pdflatex main && pdflatex main
 \end{lstlisting}
 
@@ -210,8 +226,8 @@ software stack:
     \item Windows 11, Python $3.13$.
     \item PyTorch $2.12$ (CUDA 12.8), running on an NVIDIA RTX 5060
     Laptop GPU.
-    \item NumPy, Pandas, Matplotlib, SciPy, scikit-learn for data
-    handling, statistics and reporting.
+    \item NumPy, Pandas, Matplotlib, SciPy, scikit-learn, statsmodels
+    for data handling, statistics and reporting.
     \item Plotly for the interactive HTML diagnostics shipped under
     \texttt{logs/}.
 \end{itemize}

@@ -45,7 +45,16 @@
       "Bash(py)",
       "Bash(cd \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly/documentation\" && which latexmk pdflatex 2>nul)",
       "Bash(latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex)",
-      "Bash(grep -E \"Chapter 9|9\\\\\\\\\\\\\\\\quad|v2 generator|chap:v2\" \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly/documentation/main.log\")"
+      "Bash(grep -E \"Chapter 9|9\\\\\\\\\\\\\\\\quad|v2 generator|chap:v2\" \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly/documentation/main.log\")",
+      "Bash(awk '{print strftime\\(\"%Y-%m-%d\", $1\\), $2}')",
+      "Bash(xargs -I{} basename {})",
+      "Bash(ls \"C:\\\\Users\\\\Pedro\\\\My Drive\\\\centrale-supelec\\\\pole-anomaly-old\")",
+      "Bash(xargs rm -f)",
+      "Bash(python documentation/figures/build_figures.py)",
+      "Bash(pdflatex --version)",
+      "Bash(pdflatex -interaction=nonstopmode -halt-on-error main.tex)",
+      "Bash(bibtex main *)",
+      "Bash(pdflatex -interaction=nonstopmode main.tex)"
     ]
   }
 }

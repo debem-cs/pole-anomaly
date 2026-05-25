@@ -6,44 +6,50 @@
 \noindent
 Continuous monitoring of radiological pollution relies on environmental
 surveillance beacons that record the rate of gamma photons reaching a
-detector. The recorded signal is heavily contaminated by sensor noise and
-slow baseline drift, which makes the early identification of anomalous
-radiological events --- spikes, plateaus, ramp-ups, ramp-downs --- a
-non-trivial detection \emph{and} classification problem.
+scintillation detector. The recorded signal is heavily contaminated by
+sensor noise and slow baseline drift, and the events of interest ---
+spikes, plateaus, ramp-ups, ramp-downs --- are sparse and exhibit a
+wide range of shapes, amplitudes and durations. The goal of this
+\emph{Pôle Projet} at CentraleSup\'elec was to design, train, and
+evaluate deep neural networks that can classify these events on
+streaming gamma-dose recordings.
 
-This report documents the work carried out during the \emph{Pôle Projet} at
-CentraleSup\'elec on this subject. The contribution is two-fold. First, a
-\emph{synthetic dataset generator} is built that calibrates a stochastic
-background process on real 2015 gamma dose recordings and injects six
-hand-designed, mathematically parameterised anomaly templates with
-controlled amplitude, duration and shape deformation. The generator
-produces a labelled time series of ten million points, large enough to
-train modern neural networks. Second, three neural network architectures
-of increasing complexity are designed, trained and compared on the
-classification task: a compact \textbf{1D-CNN} (23\,k parameters), a
-\textbf{1D residual network} (75\,k parameters) and a \textbf{hybrid
-CNN+Transformer model with multi-head self-attention} (110\,k parameters).
+The project ran in two iterations. The \emph{first} (v1) calibrated a
+white-Gaussian-plus-Ornstein--Uhlenbeck background model from four
+months of real 2015 recordings and injected six hand-designed anomaly
+templates densely into a $10^{7}$-sample synthetic signal; three
+PyTorch architectures (a 1D-CNN, a 1D residual network, and a hybrid
+CNN+Transformer) were trained on this dataset. On the held-out
+synthetic test segment, all three models cleared $90\%$ event-level
+macro F1, with the residual network reaching a flawless $100\%$. On
+the \emph{real} 2015 data, however, all three collapsed in different
+ways --- continuous false-positive plateaus, oscillating predictions,
+single-class fixation. The synthetic--real distribution shift turned
+out to be much larger than the noise model had suggested.
 
-The three models are evaluated at the level of individual events, not
-individual samples, which better matches operational use. On a held-out
-synthetic test segment containing 59 events, all three models achieve
-strong performance, with the residual network reaching $100\%$
-event-level macro F1, the attention model reaching $95.5\%$, and the
-baseline 1D-CNN reaching $93.4\%$. A dedicated robustness study reveals
-that residual connections and self-attention substantially improve
-graceful degradation when the background noise or the anomaly shape
-moves outside the training distribution. Finally, the models are run on
-unlabelled real 2015 data: this stress-test exposes a clear
-\emph{distribution shift} between the densely-injected synthetic training
-set and the sparse, almost purely-noise real signal, and we analyse the
-consequences --- including a degenerate collapse of the attention model
-to one class --- with concrete recommendations for the next iteration of
-the project.
+The \emph{second} iteration (v2) re-analysed the background process,
+discovered that the high-frequency residual is well described by an
+AR(1) Gaussian rather than IID white noise ($\varphi \approx 0.86$,
+$\sigma_\varepsilon \approx 1.12$), hand-labelled the seventeen
+plausible events visible across the four months, and re-tuned the
+generator to (i) reproduce the AR(1) noise texture, (ii) match the
+empirical anomaly amplitude and duration ranges, (iii) lower the
+injection density from $\sim 7$ to $\sim 1.5$ events per $10\text{k}$
+samples, and (iv) prune the template family to the three shapes
+(\texttt{bell}, \texttt{fast\_ascend}, \texttt{fast\_descend}) that
+actually occur in the labels. Retrained on this corpus, the same three
+architectures now \emph{commit} to the normal class on quiet stretches
+of the real signal and fire only where a visible event is present.
+
+This report documents both iterations: the v1 retrospective, the
+re-analysis that exposed its blind spots, the design of v2, and the
+v2 results on synthetic data, robustness sweeps, and real recordings.
 
 \vfill
 \begin{center}
 \small
 \textit{Keywords:} time series classification, 1D convolutional neural
 networks, residual networks, self-attention, transformer encoder,
-radiological monitoring, synthetic data generation, distribution shift.
+radiological monitoring, synthetic data generation, AR(1) noise,
+distribution shift.
 \end{center}
