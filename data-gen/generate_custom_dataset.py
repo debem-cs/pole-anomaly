@@ -21,16 +21,19 @@ mismatches:
    the 10M-sample synthetic length. Global mean is sampled around
    99.3.
 
-3. **Anomaly density: ~1.5 / 10k samples**, matching the empirical
-   density (~1.05 / 10k from hand labels). Old generator was at
-   ~7 / 10k.
+3. **Anomaly density: ~1.5 / 10k samples**, slightly above the
+   empirical density (~1.05 / 10k from 17 hand labels across the four
+   months) to give the network a few extra training examples. Old
+   generator was at ~7 / 10k.
 
 4. **Anomaly durations: log-uniform [30, 1000]**, matching the
    empirical p5-p95 range of the labels.
 
-5. **Anomaly amplitudes: log-uniform [10, 40] counts above baseline**,
-   absolute (no longer multiples of sigma_HF). Matches the labelled
-   amplitude range of 11-37 counts.
+5. **Anomaly amplitudes: log-uniform [15, 40] counts above baseline**,
+   absolute (no longer multiples of sigma_HF). The empirical range is
+   [11.2, 36.8] counts; the lower bound was raised to 15 because
+   amplitudes below that are not separable from the AR(1)+OU
+   background texture and were degrading training rather than helping.
 
 6. **Polarity: 100% positive.** All 17 hand-labelled real events are
    positive excursions.
@@ -80,8 +83,11 @@ CONFIG = {
     "INJECT_JITTER":        400,    # +/- random jitter around grid
 
     # --- Anomaly shape -------------------------------------------------
-    # Empirical amplitudes (peak above baseline) span 11.2-36.7 counts.
-    # Log-uniform in counts, NOT multiples of HF noise std.
+    # Empirical amplitudes (peak above baseline) span 11.2-36.8 counts.
+    # Log-uniform in counts, NOT multiples of HF noise std. The min is
+    # held at 15 (not the empirical 11) because amplitudes below ~15 get
+    # lost in the AR(1)+OU background texture and are not separable from
+    # noise at training time.
     "AMPLITUDE_MIN":        15.0,
     "AMPLITUDE_MAX":        40.0,
     # Empirical durations span 32-1014 samples, log-uniform.

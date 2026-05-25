@@ -37,7 +37,15 @@
       "Bash(cp data-gen/logs/noise_analysis/stability_24_02_2015_1120.png documentation/figures/real_reanalysis_stability.png)",
       "Bash(rm -f documentation/figures/real_reanalysis_event_examples.png documentation/figures/real_reanalysis_event_distributions.png documentation/figures/real_reanalysis_overview_feb_v3.png documentation/figures/real_reanalysis_overview_oct_v3.png documentation/figures/real_reanalysis_scales_feb.png documentation/figures/real_reanalysis_baseline_cmp_oct.png)",
       "Bash(.venv/Scripts/python.exe data-gen/labeling_view.py)",
-      "Bash(cd \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly\" && head -5 data-gen/interactive_labeling_helper.py data-gen/affichage_donnees.py data-gen/test_generator_deformation.py data-gen/legacy_plot_datasets.py data-gen/legacy_ucr_injection.py)"
+      "Bash(cd \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly\" && head -5 data-gen/interactive_labeling_helper.py data-gen/affichage_donnees.py data-gen/test_generator_deformation.py data-gen/legacy_plot_datasets.py data-gen/legacy_ucr_injection.py)",
+      "Bash(python -c ' *)",
+      "Bash(where python *)",
+      "Bash(where py *)",
+      "Bash(where python3 *)",
+      "Bash(py)",
+      "Bash(cd \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly/documentation\" && which latexmk pdflatex 2>nul)",
+      "Bash(latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex)",
+      "Bash(grep -E \"Chapter 9|9\\\\\\\\\\\\\\\\quad|v2 generator|chap:v2\" \"/c/Users/Pedro/My Drive/centrale-supelec/pole-anomaly/documentation/main.log\")"
     ]
   }
 }
