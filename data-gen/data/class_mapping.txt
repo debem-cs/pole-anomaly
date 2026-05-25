@@ -1,7 +1,4 @@
 0: Normal Background
 1: bell
-2: bell_sq
-3: fast_ascend
-4: fast_descend
-5: M
-6: square
+2: fast_ascend
+3: fast_descend

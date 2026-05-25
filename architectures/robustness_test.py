@@ -36,47 +36,34 @@ import generate_custom_dataset as gcd
 # ─────────────────────────────────────────────
 # Dataset Generation
 # ─────────────────────────────────────────────
-def generate_test_dataset(templates, class_map, global_mean, base_std_noise, theta, sigma,
-                          noise_multiplier=1.0, variance_level=0.04, num_anomalies=50,
-                          seed=42):
+def generate_test_dataset(noise_multiplier=1.0, variance_level=0.04,
+                          num_anomalies=50, seed=42):
     """
-    Generate a small synthetic dataset with controllable noise and deformation
-    by calling the shared generator in data-gen/script/generate_custom_dataset.py.
+    Generate a small synthetic dataset with controllable noise and
+    deformation, by calling the shared generator in
+    data-gen/generate_custom_dataset.py.
+
+    The generator's `noise_multiplier` scales the AR(1) innovation std
+    (and therefore the marginal HF std). Since anomaly amplitudes in
+    the new generator are *absolute* counts (no longer multiples of
+    sigma_HF), the SNR drops automatically when noise grows --- no
+    need for the amplitude rescaling hack the v1 robustness script
+    used.
     """
-    # Temporarily override generator config to match our swept params
-    gcd.CONFIG["BACKGROUND_MEAN"] = global_mean
-    gcd.CONFIG["BACKGROUND_STD"] = base_std_noise
-    gcd.CONFIG["BASELINE_THETA"] = theta
-    gcd.CONFIG["BASELINE_SIGMA"] = sigma
-    
-    # CRITICAL FIX: The data generator scales the generated anomaly amplitudes by the `std_noise`. 
-    # If we increase noise_multiplier, we also inadvertently increase the anomaly strength (keeping SNR exactly the same!). 
-    # To test true robustness to background noise, we MUST divide the amplitude thresholds by the noise_multiplier 
-    # so that the absolute strength of the injected anomalies remains constant.
-    orig_amp_min = gcd.CONFIG["AMPLITUDE_MIN"]
-    orig_amp_max = gcd.CONFIG["AMPLITUDE_MAX"]
-    gcd.CONFIG["AMPLITUDE_MIN"] = orig_amp_min / noise_multiplier
-    gcd.CONFIG["AMPLITUDE_MAX"] = orig_amp_max / noise_multiplier
-    
-    # Keep the exact data size / num_anomalies ratio as the training dataset
-    mean_train_anomalies = (gcd.CONFIG["NUM_ANOMALIES_MIN"] + gcd.CONFIG["NUM_ANOMALIES_MAX"]) // 2
+    # Keep the same anomaly density as the training dataset.
+    mean_train_anomalies = (gcd.CONFIG["NUM_ANOMALIES_MIN"]
+                             + gcd.CONFIG["NUM_ANOMALIES_MAX"]) // 2
     spacing = gcd.CONFIG["TOTAL_POINTS"] // mean_train_anomalies
     N = spacing * (num_anomalies + 1)
 
-    df = gcd.create_synthetic_dataset(
+    return gcd.create_synthetic_dataset(
         total_points=N,
         num_anomalies=num_anomalies,
         noise_multiplier=noise_multiplier,
         variance_override=variance_level,
         return_df=True,
-        seed=seed
+        seed=seed,
     )
-    
-    # Restore configs
-    gcd.CONFIG["AMPLITUDE_MIN"] = orig_amp_min
-    gcd.CONFIG["AMPLITUDE_MAX"] = orig_amp_max
-    
-    return df
 
 
 # ─────────────────────────────────────────────
@@ -143,13 +130,16 @@ def main():
     log(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     log("=" * 70)
 
-    # ── Load background characteristics directly from data generator CONFIG ──
-    global_mean = gcd.CONFIG["BACKGROUND_MEAN"]
-    base_std_noise = gcd.CONFIG["BACKGROUND_STD"]
-    theta = gcd.CONFIG["BASELINE_THETA"]
-    sigma = gcd.CONFIG["BASELINE_SIGMA"]
+    # ── Load background characteristics from generator CONFIG ──
+    global_mean = gcd.CONFIG["BASELINE_MEAN"]
+    ar1_phi = gcd.CONFIG["AR1_PHI"]
+    ar1_sigma_eps = gcd.CONFIG["AR1_SIGMA_EPS"]
+    # Marginal HF std implied by the AR(1) model.
+    marginal_hf_std = ar1_sigma_eps / np.sqrt(1.0 - ar1_phi ** 2)
 
-    log(f"\nBaseline noise std: {base_std_noise:.4f}")
+    log(f"\nAR(1) phi: {ar1_phi}")
+    log(f"AR(1) innovation sigma: {ar1_sigma_eps:.4f}")
+    log(f"Marginal HF std: {marginal_hf_std:.4f}")
     log(f"Global mean: {global_mean:.2f}")
 
     # ── Load templates ──
@@ -220,9 +210,8 @@ def main():
     noise_results = []
     for mult in noise_multipliers:
         df_test = generate_test_dataset(
-            templates, class_map, global_mean, base_std_noise, theta, sigma,
             noise_multiplier=mult, variance_level=BASELINE_VARIANCE,
-            num_anomalies=NUM_ANOMALIES, seed=12345
+            num_anomalies=NUM_ANOMALIES, seed=12345,
         )
 
         acc, det, conf, n_events, f1 = evaluate_on_dataset(
@@ -244,9 +233,9 @@ def main():
     for mult in deform_multipliers:
         actual_variance = mult * BASELINE_VARIANCE
         df_test = generate_test_dataset(
-            templates, class_map, global_mean, base_std_noise, theta, sigma,
-            noise_multiplier=BASELINE_NOISE_MULT, variance_level=actual_variance,
-            num_anomalies=NUM_ANOMALIES, seed=12345
+            noise_multiplier=BASELINE_NOISE_MULT,
+            variance_level=actual_variance,
+            num_anomalies=NUM_ANOMALIES, seed=12345,
         )
 
         acc, det, conf, n_events, f1 = evaluate_on_dataset(
@@ -292,7 +281,7 @@ def main():
     noise_y = [r[2] * 100 for r in noise_results]
     ax1.plot(noise_x, noise_y, marker='o', linestyle='-', color='red', linewidth=3, markersize=8, label='Macro F1 Score')
     ax1.set_title('Background Noise Intensity')
-    ax1.set_xlabel(f'Noise Multiplier (×1 = {base_std_noise:.2f} std dev)')
+    ax1.set_xlabel(f'Noise Multiplier (×1 = AR(1) innov σ {ar1_sigma_eps:.2f} → marginal HF σ {marginal_hf_std:.2f})')
     ax1.set_ylabel('F1 Score (%)')
     ax1.set_ylim(0, 110)
     ax1.grid(True, linestyle='--', alpha=0.3)
@@ -361,7 +350,7 @@ def main():
         )
     )
 
-    fig_plotly.update_xaxes(title_text=f'Noise Multiplier (×1 = {base_std_noise:.2f} std dev)', row=1, col=1)
+    fig_plotly.update_xaxes(title_text=f'Noise Multiplier (×1 = AR(1) innov σ {ar1_sigma_eps:.2f} → marginal HF σ {marginal_hf_std:.2f})', row=1, col=1)
     fig_plotly.update_xaxes(title_text=f'Deformation Multiplier (×1 = {BASELINE_VARIANCE} variance)', row=1, col=2)
     fig_plotly.update_yaxes(title_text='F1 Score (%)', range=[0, 110], row=1, col=1)
     fig_plotly.update_yaxes(range=[0, 110], row=1, col=2)

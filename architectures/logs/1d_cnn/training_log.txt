@@ -1,6 +1,6 @@
 ============================================================
 1D-CNN MULTI-CLASS TRAINING LOG
-Timestamp: 2026-05-21 21:27:25
+Timestamp: 2026-05-25 17:56:18
 ============================================================
 
 --- Hyperparameters ---
@@ -23,91 +23,85 @@ GPU: NVIDIA GeForce RTX 5060 Laptop GPU
 CUDA Version: 12.8
 
 Loading and preprocessing data...
-Normalization stats saved: per-window centering, global std=4.2136
+Normalization stats saved: per-window centering, global std=2.8829
 
 --- Dataset ---
 Training samples: 249985
 Test samples: 62485
-Number of classes: 7
+Number of classes: 4
 Input shape: (249985, 1, 512)
 
 --- Class Distribution (Training Set) ---
-  Normal Background (ID 0): 77674 samples (31.1%)
-  bell (ID 1): 30218 samples (12.1%)
-  bell_sq (ID 2): 28106 samples (11.2%)
-  fast_ascend (ID 3): 27004 samples (10.8%)
-  fast_descend (ID 4): 28769 samples (11.5%)
-  M (ID 5): 30963 samples (12.4%)
-  square (ID 6): 27251 samples (10.9%)
+  Normal Background (ID 0): 229481 samples (91.8%)
+  bell (ID 1): 7348 samples (2.9%)
+  fast_ascend (ID 2): 6668 samples (2.7%)
+  fast_descend (ID 3): 6488 samples (2.6%)
 
 --- Split ---
 Train: 199988 | Validation: 49997 | Test: 62485
 
 --- Model Architecture ---
-Total Parameters: 22,727
-Trainable Parameters: 22,727
+Total Parameters: 22,628
+Trainable Parameters: 22,628
 
 --- Class Weights ---
-Weights: [0.46 1.18 1.27 1.32 1.24 1.15 1.31]
+Weights: [0.27 8.51 9.37 9.63]
 
 ============================================================
 TRAINING
 ============================================================
 Epoch    Train Loss     Val Loss       Val F1     LR           Status
 -------------------------------------------------------------------------
-01/35    1.3385         1.0583         0.6126     0.001000     * saved
-02/35    1.1479         0.9620         0.6585     0.001000     * saved
-03/35    1.0850         0.9082         0.6827     0.001000     * saved
-04/35    1.0473         0.8848         0.6867     0.001000     * saved
-05/35    1.0158         0.8542         0.6974     0.001000     * saved
-06/35    0.9937         0.8444         0.6988     0.001000     * saved
-07/35    0.9796         0.8185         0.7110     0.001000     * saved
-08/35    0.9661         0.8195         0.7081     0.001000     patience 1/10
-09/35    0.9560         0.7983         0.7163     0.001000     * saved
-10/35    0.9481         0.8156         0.7124     0.001000     patience 1/10
-11/35    0.9400         0.7957         0.7150     0.001000     patience 2/10
-12/35    0.9316         0.7817         0.7261     0.001000     * saved
-13/35    0.9290         0.7785         0.7245     0.001000     patience 1/10
-14/35    0.9231         0.7757         0.7280     0.001000     * saved
-15/35    0.9166         0.7707         0.7237     0.001000     patience 1/10
-16/35    0.9129         0.7735         0.7230     0.001000     patience 2/10
-17/35    0.9082         0.7658         0.7325     0.001000     * saved
-18/35    0.9065         0.7531         0.7342     0.001000     * saved
-19/35    0.9001         0.7661         0.7264     0.001000     patience 1/10
-20/35    0.8979         0.7685         0.7235     0.001000     patience 2/10
-21/35    0.8941         0.7517         0.7367     0.001000     patience 3/10
-22/35    0.8904         0.7544         0.7377     0.001000     patience 4/10
-23/35    0.8898         0.7481         0.7369     0.001000     * saved
-24/35    0.8881         0.7548         0.7341     0.001000     patience 1/10
-25/35    0.8868         0.7436         0.7398     0.001000     patience 2/10
-26/35    0.8815         0.7449         0.7341     0.001000     patience 3/10
-27/35    0.8807         0.7400         0.7381     0.001000     * saved
-28/35    0.8770         0.7350         0.7386     0.001000     patience 1/10
-29/35    0.8759         0.7452         0.7364     0.001000     patience 2/10
-30/35    0.8745         0.7393         0.7362     0.001000     patience 3/10
-31/35    0.8727         0.7362         0.7408     0.001000     patience 4/10
-32/35    0.8622         0.7278         0.7451     0.000500     * saved
-33/35    0.8599         0.7278         0.7432     0.000500     patience 1/10
-34/35    0.8595         0.7303         0.7397     0.000500     patience 2/10
-35/35    0.8569         0.7207         0.7447     0.000500     * saved
+01/35    0.7838         0.5237         0.7743     0.001000     * saved
+02/35    0.5740         0.4360         0.7741     0.001000     * saved
+03/35    0.5176         0.4217         0.7647     0.001000     * saved
+04/35    0.4877         0.3941         0.8184     0.001000     * saved
+05/35    0.4620         0.3714         0.8297     0.001000     * saved
+06/35    0.4411         0.3604         0.8018     0.001000     * saved
+07/35    0.4207         0.3561         0.8256     0.001000     patience 1/10
+08/35    0.4075         0.4325         0.6661     0.001000     patience 2/10
+09/35    0.3954         0.3673         0.8193     0.001000     patience 3/10
+10/35    0.3786         0.3332         0.8395     0.001000     * saved
+11/35    0.3709         0.3430         0.8277     0.001000     patience 1/10
+12/35    0.3574         0.3593         0.7866     0.001000     patience 2/10
+13/35    0.3449         0.3369         0.8082     0.001000     patience 3/10
+14/35    0.3178         0.2860         0.7834     0.000500     * saved
+15/35    0.3055         0.2684         0.8357     0.000500     * saved
+16/35    0.3010         0.2744         0.8572     0.000500     patience 1/10
+17/35    0.2930         0.3009         0.8127     0.000500     patience 2/10
+18/35    0.2875         0.2554         0.8328     0.000500     * saved
+19/35    0.2835         0.2579         0.8085     0.000500     patience 1/10
+20/35    0.2781         0.2718         0.8314     0.000500     patience 2/10
+21/35    0.2718         0.2434         0.8500     0.000500     * saved
+22/35    0.2698         0.2505         0.8587     0.000500     patience 1/10
+23/35    0.2653         0.2511         0.8396     0.000500     patience 2/10
+24/35    0.2582         0.2466         0.8113     0.000500     patience 3/10
+25/35    0.2441         0.2401         0.8574     0.000250     patience 4/10
+26/35    0.2353         0.2270         0.8366     0.000250     * saved
+27/35    0.2322         0.2204         0.8419     0.000250     * saved
+28/35    0.2369         0.2355         0.8612     0.000250     patience 1/10
+29/35    0.2276         0.2180         0.8610     0.000250     patience 2/10
+30/35    0.2258         0.2243         0.8342     0.000250     patience 3/10
+31/35    0.2231         0.2238         0.8631     0.000250     patience 4/10
+32/35    0.2190         0.2278         0.8508     0.000250     patience 5/10
+33/35    0.2113         0.2069         0.8521     0.000125     * saved
+34/35    0.2070         0.2047         0.8616     0.000125     patience 1/10
+35/35    0.2069         0.2071         0.8368     0.000125     patience 2/10
 
-Training Duration: 0:04:17.820105
-Best Validation Loss: 0.7207
+Training Duration: 0:03:48.859530
+Best Validation Loss: 0.2069
 
 ============================================================
 TEST EVALUATION
 ============================================================
-Test Loss: 0.7469
-Test Accuracy: 0.7656 (47839/62485)
+Test Loss: 0.4021
+Test Accuracy: 0.9556 (59711/62485)
 
 --- Per-Class Accuracy ---
-  Normal Background (ID 0): 0.9407 (18086/19227)
-  bell (ID 1): 0.6970 (5384/7725)
-  bell_sq (ID 2): 0.6186 (4518/7304)
-  fast_ascend (ID 3): 0.7038 (5006/7113)
-  fast_descend (ID 4): 0.7205 (4928/6840)
-  M (ID 5): 0.6870 (5083/7399)
-  square (ID 6): 0.7029 (4834/6877)
+  Normal Background (ID 0): 0.9723 (55899/57493)
+  bell (ID 1): 0.8093 (1676/2071)
+  fast_ascend (ID 2): 0.8003 (1198/1497)
+  fast_descend (ID 3): 0.6587 (938/1424)
 
 Model saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\saved_models\1d_cnn\best_1d_cnn.pth
 Log saved to: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\1d_cnn\training_log.txt

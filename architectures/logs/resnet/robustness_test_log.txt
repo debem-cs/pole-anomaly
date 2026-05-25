@@ -1,15 +1,17 @@
 ======================================================================
 ResNet 1D ROBUSTNESS TEST
-Timestamp: 2026-05-22 12:49:54
+Timestamp: 2026-05-25 18:18:49
 ======================================================================
 
-Baseline noise std: 2.5300
-Global mean: 99.26
-Templates loaded: ['bell', 'bell_sq', 'fast_ascend', 'fast_descend', 'M', 'square']
-Class mapping: {'bell': 1, 'bell_sq': 2, 'fast_ascend': 3, 'fast_descend': 4, 'M': 5, 'square': 6}
-Number of classes: 7
+AR(1) phi: 0.86
+AR(1) innovation sigma: 1.1200
+Marginal HF std: 2.1948
+Global mean: 99.30
+Templates loaded: ['bell', 'fast_ascend', 'fast_descend']
+Class mapping: {'bell': 1, 'fast_ascend': 2, 'fast_descend': 3}
+Number of classes: 4
 Device: cuda
-Training std: 4.2136
+Training std: 2.8829
 
 ======================================================================
 SWEEP 1: BACKGROUND NOISE INTENSITY
@@ -18,16 +20,16 @@ SWEEP 1: BACKGROUND NOISE INTENSITY
 
 Noise Mult.    Events    Macro F1    
 -------------------------------------
-1.00           50        98.4%       
-1.22           50        98.4%       
-1.44           50        94.4%       
-1.67           50        92.8%       
-1.89           50        84.9%       
-2.11           50        76.9%       
-2.33           50        65.3%       
-2.56           50        63.1%       
-2.78           50        57.9%       
-3.00           50        52.9%       
+1.00           50        85.6%       
+1.22           50        81.9%       
+1.44           50        75.9%       
+1.67           50        72.0%       
+1.89           50        66.9%       
+2.11           50        54.8%       
+2.33           50        52.7%       
+2.56           50        46.6%       
+2.78           50        40.7%       
+3.00           50        42.0%       
 
 ======================================================================
 SWEEP 2: ANOMALY SHAPE DEFORMATION
@@ -36,21 +38,21 @@ SWEEP 2: ANOMALY SHAPE DEFORMATION
 
 Deform Mult.   Events    Macro F1    
 -------------------------------------
-1.00           50        98.4%       
-1.78           50        98.4%       
-2.56           50        84.6%       
-3.33           50        75.8%       
-4.11           50        78.5%       
-4.89           50        54.9%       
-5.67           50        47.8%       
-6.44           50        44.8%       
-7.22           50        34.9%       
-8.00           50        38.4%       
+1.00           50        85.6%       
+1.78           50        76.8%       
+2.56           50        73.7%       
+3.33           50        70.9%       
+4.11           50        64.4%       
+4.89           50        55.3%       
+5.67           50        46.5%       
+6.44           50        34.4%       
+7.22           50        29.2%       
+8.00           50        28.3%       
 
 ======================================================================
 SUMMARY
 ======================================================================
-Noise: model maintained >50% F1 Score across all tested multipliers
+Noise: F1 Score first drops below 50% at multiplier = 2.6x
 Deformation: F1 Score first drops below 50% at multiplier = 5.7x
 
 Generating robustness chart...

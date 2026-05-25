@@ -1,6 +1,6 @@
 ============================================================
 CNN+Attention MULTI-CLASS INFERENCE LOG
-Timestamp: 2026-05-22 12:50:07
+Timestamp: 2026-05-25 18:28:52
 ============================================================
 
 Loading data...
@@ -8,11 +8,11 @@ Loading data...
 --- Dataset ---
 Total dataset size: 10,000,000 points
 Inference segment: 100,000 points
-True anomaly points in segment: 29,462
-Number of classes: 7
-Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'bell_sq', 3: 'fast_ascend', 4: 'fast_descend', 5: 'M', 6: 'square'}
+True anomaly points in segment: 2,215
+Number of classes: 4
+Class mapping: {0: 'Normal Background', 1: 'bell', 2: 'fast_ascend', 3: 'fast_descend'}
 
-Loaded training normalization stats: per-window centering, std=4.2136
+Loaded training normalization stats: per-window centering, std=2.8829
 
 --- Environment ---
 PyTorch Version: 2.12.0.dev20260408+cu128
@@ -25,107 +25,57 @@ Window Size: 512
 Stride: 10
 Smoothing Window: 30
 Model path: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\saved_models\cnn_attention\best_cnn_attention.pth
-Model Parameters: 109,655
+Model Parameters: 109,460
 
 Running inference...
-Inference completed in 0:00:00.655210
+Inference completed in 0:00:00.622535
 Total windows processed: 9,949
-Windows per second: 15184
+Windows per second: 15981
 
 ================================================================================
 DETECTION-DRIVEN EVENT EVALUATION
 ================================================================================
-Extracted Ground-Truth Events: 59
-Extracted Predicted Events: 59
+Extracted Ground-Truth Events: 15
+Extracted Predicted Events: 11
 
 #    Type                 True Class      Predicted          Conf     Pts
 ---------------------------------------------------------------------------
-1    TP (Hit)             M               M                74.1%     263
-2    FN (Misclassified)   bell            fast_ascend      33.3%     518
-3    TP (Hit)             fast_ascend     fast_ascend      73.0%     552
-4    TP (Hit)             bell_sq         bell_sq          71.4%     602
-5    TP (Hit)             M               M                52.3%     766
-6    TP (Hit)             square          square           68.2%     515
-7    TP (Hit)             square          square           81.7%     469
-8    TP (Hit)             square          square           68.2%     533
-9    TP (Hit)             fast_ascend     fast_ascend      67.3%     480
-10   TP (Hit)             square          square           83.5%     674
-11   TP (Hit)             bell            bell             70.8%     462
-12   TP (Hit)             fast_ascend     fast_ascend      84.6%     603
-13   TP (Hit)             bell_sq         bell_sq          71.4%     419
-14   TP (Hit)             M               M                71.6%     405
-15   TP (Hit)             bell            bell             76.1%     776
-16   TP (Hit)             square          square           76.2%     476
-17   TP (Hit)             bell_sq         bell_sq          59.6%     547
-18   TP (Hit)             M               M                77.9%     551
-19   TP (Hit)             bell_sq         bell_sq          75.6%     464
-20   TP (Hit)             bell_sq         bell_sq          66.1%     393
-21   TP (Hit)             fast_ascend     fast_ascend      64.0%     753
-22   TP (Hit)             fast_ascend     fast_ascend      85.8%     405
-23   TP (Hit)             bell_sq         bell_sq          63.4%     523
-24   TP (Hit)             bell_sq         bell_sq          60.4%     554
-25   TP (Hit)             bell            bell             76.7%     754
-26   TP (Hit)             bell_sq         bell_sq          75.2%     343
-27   TP (Hit)             fast_ascend     fast_ascend      75.3%     690
-28   TP (Hit)             M               M                65.4%     702
-29   TP (Hit)             bell            bell             85.0%     730
-30   TP (Hit)             square          square           77.2%     332
-31   TP (Hit)             fast_descend    fast_descend     79.2%     452
-32   TP (Hit)             fast_ascend     fast_ascend      71.7%     268
-33   TP (Hit)             fast_descend    fast_descend     84.9%     608
-34   TP (Hit)             bell            bell             60.0%     308
-35   FN (Misclassified)   square          bell_sq          44.7%     191
-36   TP (Hit)             square          square           77.7%     490
-37   TP (Hit)             fast_ascend     fast_ascend      68.5%     580
-38   FN (Misclassified)   bell_sq         square           50.9%     299
-39   TP (Hit)             square          square           71.2%     593
-40   TP (Hit)             bell            bell             68.9%     486
-41   TP (Hit)             bell            bell             56.8%     294
-42   TP (Hit)             fast_descend    fast_descend     72.4%     249
-43   TP (Hit)             bell_sq         bell_sq          46.2%     734
-44   TP (Hit)             M               M                67.1%     506
-45   TP (Hit)             square          square           62.7%     624
-46   TP (Hit)             fast_descend    fast_descend     83.1%     767
-47   TP (Hit)             bell_sq         bell_sq          75.6%     209
-48   TP (Hit)             fast_ascend     fast_ascend      87.8%     596
-49   TP (Hit)             bell_sq         bell_sq          76.0%     297
-50   TP (Hit)             bell            bell             80.4%     531
-51   TP (Hit)             fast_descend    fast_descend     73.9%     270
-52   TP (Hit)             bell            bell             69.4%     437
-53   TP (Hit)             fast_ascend     fast_ascend      81.8%     613
-54   TP (Hit)             bell_sq         bell_sq          77.5%     462
-55   TP (Hit)             fast_ascend     fast_ascend      83.7%     338
-56   TP (Hit)             M               M                75.6%     549
-57   TP (Hit)             bell            bell             70.9%     748
-58   TP (Hit)             fast_descend    fast_descend     82.3%     379
-59   TP (Hit)             fast_descend    fast_descend     90.0%     330
+1    TP (Hit)             bell            bell             79.4%      53
+2    TP (Hit)             bell            bell             82.5%     344
+3    TP (Hit)             fast_descend    fast_descend     84.1%      88
+4    FN (Missed)          fast_ascend     Normal Background   0.0%      26
+5    TP (Hit)             fast_ascend     fast_ascend      82.1%      55
+6    FN (Missed)          fast_descend    Normal Background   0.0%      30
+7    FN (Missed)          fast_descend    Normal Background   0.0%      45
+8    TP (Hit)             bell            bell             76.9%     164
+9    TP (Hit)             bell            bell             63.4%      61
+10   FN (Missed)          fast_descend    Normal Background   0.0%      28
+11   TP (Hit)             fast_ascend     fast_ascend      80.6%     229
+12   TP (Hit)             fast_descend    fast_descend     83.4%      56
+13   TP (Hit)             fast_descend    fast_descend     84.2%     114
+14   TP (Hit)             fast_ascend     fast_ascend      82.6%     446
+15   TP (Hit)             fast_descend    fast_descend     89.0%     476
 
 --- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
-                       bell    bell_sq fast_ascen fast_desce          M     square
-----------------------------------------------------------------------------------
-            bell         10          0          1          0          0          0
-         bell_sq          0         12          0          0          0          1
-     fast_ascend          0          0         11          0          0          0
-    fast_descend          0          0          0          7          0          0
-               M          0          0          0          0          7          0
-          square          0          1          0          0          0          9
+                 Normal Bac       bell fast_ascen fast_desce
+------------------------------------------------------------
+            bell          0          4          0          0
+     fast_ascend          1          0          3          0
+    fast_descend          3          0          0          4
 
 --- Event-Level Summary ---
-True Positives (Hits): 56
+True Positives (Hits): 11
 False Positives (Hallucinations/Misclassifications): 0
-False Negatives (Missed/Misclassified): 3
-Mean Confidence of Predictions: 71.6%
+False Negatives (Missed/Misclassified): 4
+Mean Confidence of Predictions: 59.2%
 
 Class                 Support     Prec   Recall       F1
 -------------------------------------------------------
-bell                       11   1.0000   0.9091   0.9524
-bell_sq                    13   0.9231   0.9231   0.9231
-fast_ascend                11   0.9167   1.0000   0.9565
-fast_descend                7   1.0000   1.0000   1.0000
-M                           7   1.0000   1.0000   1.0000
-square                     10   0.9000   0.9000   0.9000
+bell                        4   1.0000   1.0000   1.0000
+fast_ascend                 4   1.0000   0.7500   0.8571
+fast_descend                7   1.0000   0.5714   0.7273
 -------------------------------------------------------
-Macro Average                   0.9566   0.9554   0.9553
+Macro Average                   1.0000   0.7738   0.8615
 
 Confusion matrix saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\confusion_matrix.png
 ROC curves saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\cnn_attention\roc_curves.png

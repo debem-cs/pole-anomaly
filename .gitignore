@@ -3,6 +3,7 @@
 ## 1. Virtual Environment ##
 # Ignore the virtual environment folder
 /venv/
+.claude/
 
 ## 2. Python Bytecode & Compilation ##
 # Ignore compiled Python files and cache folders
