@@ -51,13 +51,29 @@ larger stride (32 samples) to reduce redundancy.
 
 \paragraph{Labelling rule.}
 Because a single window may contain a mixture of background and event
-samples, we follow a simple rule: the window inherits the most frequent
-non-zero label inside it if more than $10\%$ of its samples are
-anomalous, and is labelled \texttt{Normal Background} otherwise
+samples, we use an \emph{event-coverage} rule: for every event $e$
+overlapping the window, we compute the fraction of $e$'s own samples
+that the window captures, and the window inherits the class of the
+event with the highest such fraction, provided that fraction exceeds
+a threshold $\tau_{\text{cov}}$ (we use $\tau_{\text{cov}} = 0.30$).
+Otherwise the window is labelled \texttt{Normal Background}
 (see \cref{fig:sliding-window} in \cref{sec:archi-train}). This makes
 the boundaries of events slightly fuzzy --- a deliberate choice that
 helps the network generalise to events whose exact start and end are
-uncertain.
+uncertain --- while ensuring that short events (whose total duration
+is small compared to $W$) are still seen as positive examples by the
+network.
+
+A natural alternative is the \emph{window-coverage} rule: label a
+window positive when more than some fraction of \emph{its own}
+samples are anomalous. With $W = 512$ and a threshold of $10\%$, this
+rule silently maps any event shorter than $\sim 0.1\,W \approx 50$
+samples to \texttt{Normal Background} regardless of how completely a
+window captures it, because such an event simply cannot fill enough
+of the window to clear the threshold. The v2 generator deliberately
+produces events as short as $\sim 30$ samples, so anchoring the
+threshold to the event's own length rather than the window's avoids
+losing them at the labelling stage.
 
 \paragraph{Mathematical objective.}
 Letting $f_\theta : \R^W \to \R^K$ denote the network with parameters

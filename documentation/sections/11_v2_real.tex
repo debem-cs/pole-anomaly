@@ -87,15 +87,15 @@ February events (near samples $8\,500$ and $18\,800$, see
 single $10\,000$-sample snapshot; nor can we tell whether they
 correctly stay silent on the other three months.
 
-\paragraph{The remaining detection floor is the short events.} The
-shortest hand-labelled events (June, $32$--$55$ samples) sit at the
-borderline of the windowing labelling rule
-(\cref{sec:framing}). The v2 generator is calibrated to produce events
-this short, but the event-level extractor of \cref{sec:event-eval}
-loses sensitivity on them --- the v2 synthetic-test result already
-showed this on the four missed events of \cref{tab:v2-event-prf}.
-Detecting these shortest events with high recall is the natural next
-problem.
+\paragraph{Short events.} The shortest hand-labelled events (June,
+$32$--$55$ samples) are well below the $W = 512$ window length but
+still firmly within the range the event-coverage labelling rule
+(\cref{sec:framing}, $\tau_{\text{cov}} = 0.30$) keeps in the
+training distribution. The v2 synthetic-test segment of
+\cref{tab:v2-event-prf} reports that events of comparable length
+($26$--$45$ samples) are detected by \emph{all three} models, so the
+June events are expected to be within reach of the v2 networks ---
+though confirming this needs a real labelled test set, see below.
 
 \paragraph{The next step is expert labelling.} The qualitative
 improvement of v2 over v1 closes most of the synthetic--real gap that

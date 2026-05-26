@@ -1,6 +1,6 @@
 ============================================================
 ResNet 1D MULTI-CLASS INFERENCE LOG
-Timestamp: 2026-05-25 18:18:25
+Timestamp: 2026-05-26 13:45:59
 ============================================================
 
 Loading data...
@@ -28,54 +28,54 @@ Model path: c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\
 Model Parameters: 74,532
 
 Running inference...
-Inference completed in 0:00:00.617803
+Inference completed in 0:00:00.645760
 Total windows processed: 9,949
-Windows per second: 16104
+Windows per second: 15407
 
 ================================================================================
 DETECTION-DRIVEN EVENT EVALUATION
 ================================================================================
 Extracted Ground-Truth Events: 15
-Extracted Predicted Events: 11
+Extracted Predicted Events: 15
 
 #    Type                 True Class      Predicted          Conf     Pts
 ---------------------------------------------------------------------------
-1    TP (Hit)             bell            bell             81.8%      53
-2    TP (Hit)             bell            bell             84.4%     344
-3    TP (Hit)             fast_descend    fast_descend     84.1%      88
-4    FN (Missed)          fast_ascend     Normal Background   0.0%      26
-5    TP (Hit)             fast_ascend     fast_ascend      84.0%      55
-6    FN (Missed)          fast_descend    Normal Background   0.0%      30
-7    FN (Missed)          fast_descend    Normal Background   0.0%      45
-8    TP (Hit)             bell            bell             79.1%     164
-9    TP (Hit)             bell            bell             76.9%      61
-10   FN (Missed)          fast_descend    Normal Background   0.0%      28
-11   TP (Hit)             fast_ascend     fast_ascend      84.4%     229
-12   TP (Hit)             fast_descend    fast_descend     81.4%      56
-13   TP (Hit)             fast_descend    fast_descend     83.9%     114
-14   TP (Hit)             fast_ascend     fast_ascend      82.1%     446
-15   TP (Hit)             fast_descend    fast_descend     87.7%     476
+1    TP (Hit)             bell            bell             83.4%      53
+2    TP (Hit)             bell            bell             81.8%     344
+3    TP (Hit)             fast_descend    fast_descend     84.3%      88
+4    TP (Hit)             fast_ascend     fast_ascend      84.3%      26
+5    TP (Hit)             fast_ascend     fast_ascend      84.5%      55
+6    TP (Hit)             fast_descend    fast_descend     85.1%      30
+7    TP (Hit)             fast_descend    fast_descend     83.9%      45
+8    TP (Hit)             bell            bell             81.0%     164
+9    FN (Misclassified)   bell            fast_ascend      78.2%      61
+10   TP (Hit)             fast_descend    fast_descend     81.6%      28
+11   TP (Hit)             fast_ascend     fast_ascend      83.8%     229
+12   TP (Hit)             fast_descend    fast_descend     84.2%      56
+13   TP (Hit)             fast_descend    fast_descend     84.8%     114
+14   TP (Hit)             fast_ascend     fast_ascend      86.5%     446
+15   TP (Hit)             fast_descend    fast_descend     87.8%     476
 
 --- Event-Level Confusion Matrix (rows=true, cols=predicted) ---
-                 Normal Bac       bell fast_ascen fast_desce
-------------------------------------------------------------
-            bell          0          4          0          0
-     fast_ascend          1          0          3          0
-    fast_descend          3          0          0          4
+                       bell fast_ascen fast_desce
+-------------------------------------------------
+            bell          3          1          0
+     fast_ascend          0          4          0
+    fast_descend          0          0          7
 
 --- Event-Level Summary ---
-True Positives (Hits): 11
+True Positives (Hits): 14
 False Positives (Hallucinations/Misclassifications): 0
-False Negatives (Missed/Misclassified): 4
-Mean Confidence of Predictions: 60.7%
+False Negatives (Missed/Misclassified): 1
+Mean Confidence of Predictions: 83.7%
 
 Class                 Support     Prec   Recall       F1
 -------------------------------------------------------
-bell                        4   1.0000   1.0000   1.0000
-fast_ascend                 4   1.0000   0.7500   0.8571
-fast_descend                7   1.0000   0.5714   0.7273
+bell                        4   1.0000   0.7500   0.8571
+fast_ascend                 4   0.8000   1.0000   0.8889
+fast_descend                7   1.0000   1.0000   1.0000
 -------------------------------------------------------
-Macro Average                   1.0000   0.7738   0.8615
+Macro Average                   0.9333   0.9167   0.9153
 
 Confusion matrix saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\confusion_matrix.png
 ROC curves saved to c:\Users\Pedro\My Drive\centrale-supelec\pole-anomaly\architectures\logs\resnet\roc_curves.png

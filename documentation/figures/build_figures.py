@@ -985,7 +985,7 @@ def fig_v2_training_curves():
     print("[20] v2_training_curves")
     fig, axes = plt.subplots(1, 2, figsize=(11, 3.8))
     _plot_training_block(axes, ROOT, "v2 (4 classes)",
-                         f1_ylim=(0.6, 0.9))
+                         f1_ylim=(0.6, 0.95))
     fig.tight_layout()
     _save(fig, "v2_training_curves")
 

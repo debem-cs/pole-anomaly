@@ -79,33 +79,57 @@ def load_data(window_size=256, stride=32, test_size=0.2, random_state=42):
     return X_train_final, X_test_final, y_train, y_test, num_classes, train_std
 
 
-def _create_windows(signal, labels, window_size, stride, anomaly_threshold=0.10):
+def _create_windows(signal, labels, window_size, stride, event_coverage_threshold=0.30):
     """
     Create sliding windows from a signal segment.
-    A window is labeled as anomalous if anomaly points exceed anomaly_threshold
-    fraction of the window.
+
+    Event-coverage labelling rule: a window is labelled with the class of the
+    event whose overlap with the window covers the largest fraction of that
+    event's own samples, provided that fraction is at least
+    event_coverage_threshold. Otherwise the window is labelled Normal
+    Background (0).
+
+    This replaces the previous "fraction of the window is anomalous" rule,
+    which silently mapped short events (less than ~10% of the window length)
+    to Normal Background regardless of how completely a window captured them.
     """
     X_windows = []
     y_windows = []
 
+    # Pre-extract contiguous event runs as (start, end_exclusive, class).
+    events = []
+    n = len(labels)
+    i = 0
+    while i < n:
+        if labels[i] > 0:
+            ev_start = i
+            ev_cls = labels[i]
+            while i < n and labels[i] == ev_cls:
+                i += 1
+            events.append((ev_start, i, ev_cls))
+        else:
+            i += 1
+
     num_windows = (len(signal) - window_size) // stride + 1
 
-    for i in range(num_windows):
-        start = i * stride
+    for k in range(num_windows):
+        start = k * stride
         end = start + window_size
 
         window_data = signal[start:end]
-        window_labels = labels[start:end]
 
-        # Label as anomaly if it occupies at least anomaly_threshold of the window
-        anomaly_points = np.sum(window_labels > 0)
-        if anomaly_points > (window_size * anomaly_threshold):
-            # Get the most frequent anomaly class in this window
-            non_zero_labels = window_labels[window_labels > 0]
-            values, counts = np.unique(non_zero_labels, return_counts=True)
-            window_label = values[np.argmax(counts)]
-        else:
-            window_label = 0
+        best_coverage = 0.0
+        best_class = 0
+        for ev_start, ev_end, ev_cls in events:
+            if ev_end <= start or ev_start >= end:
+                continue
+            overlap = min(end, ev_end) - max(start, ev_start)
+            coverage = overlap / (ev_end - ev_start)
+            if coverage > best_coverage:
+                best_coverage = coverage
+                best_class = ev_cls
+
+        window_label = best_class if best_coverage >= event_coverage_threshold else 0
 
         X_windows.append(window_data)
         y_windows.append(window_label)

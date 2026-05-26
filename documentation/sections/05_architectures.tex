@@ -239,8 +239,9 @@ model weights so that inference uses exactly the same scaling.
     \includegraphics[width=0.95\linewidth]{figures/sliding_window}
     \caption{Sliding-window construction on a fragment of the v2
     synthetic signal. Each coloured bar represents one $512$-sample
-    training window; red bars indicate windows that contain $\geq 10\%$
-    anomaly samples and so inherit the underlying class label.}
+    training window; red bars indicate windows that capture
+    $\geq 30\%$ of an underlying event's samples and so inherit its
+    class label (event-coverage rule, \cref{sec:framing}).}
     \label{fig:sliding-window}
 \end{figure}
 

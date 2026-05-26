@@ -115,7 +115,7 @@ configurations side by side.
         Window size $W$                          & $512$ samples \\
         Sliding-window stride at training        & $32$ samples \\
         Sliding-window stride at inference       & $10$ samples \\
-        Window labelling threshold               & $10\%$ anomaly samples \\
+        Window labelling threshold $\tau_{\text{cov}}$ & $30\%$ of an event's samples captured \\
         Per-window normalisation                 & subtract window mean, divide by global $\sigma_{\mathrm{train}}$ \\
         $\sigma_{\mathrm{train}}$ (v1)           & $4.21$ \\
         $\sigma_{\mathrm{train}}$ (v2)           & $2.88$ \\

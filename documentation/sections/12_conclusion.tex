@@ -35,30 +35,39 @@ visible event is present.
 \section{Architecture recommendation}
 \label{sec:conc-archi}
 
-On the v2 synthetic benchmark the three architectures cluster at the
-same event-level macro F1 ($\sim 86\%$), so the synthetic numbers do
-not separate them. The separation appears on two other axes:
+On the v2 synthetic benchmark the 1D-CNN and the CNN+Attention reach
+a perfect event-level macro F1 ($1.00$) and the ResNet sits at $0.92$
+on the same $15$-event segment. The gap is too small to act as a
+decisive ranking on its own. The separation that matters appears on
+two other axes:
 \begin{itemize}[leftmargin=*, itemsep=0.2em]
     \item \textbf{Robustness} (\cref{chap:robustness}): the residual
     and attention models degrade much more gracefully under
     background-noise growth than the baseline 1D-CNN, which collapses
-    to a single-class plateau already at $m_{\text{noise}} \approx 2$.
+    to a single-class plateau already at $m_{\text{noise}} \approx
+    1.7$. Between the two robust architectures the ResNet pulls
+    slightly ahead (noise $50\%$-crossing at $m_{\text{noise}}
+    \approx 2.8$ vs $2.6$ for CNN+Attention, deformation
+    $50\%$-crossing at $m_{\text{deform}} \approx 6.4$ vs $5.7$).
     \item \textbf{Real-data behaviour} (\cref{chap:v2real}): the three
     models look qualitatively similar on the v2 real-data plots, but
-    the ResNet is the cleanest --- the v2 ResNet is the one whose
-    background confidence stays closest to $100\%$ on the quiet
-    stretches without any of the residual jitter the 1D-CNN still
-    shows.
+    the ResNet is the cleanest --- its background confidence stays
+    closest to $100\%$ on the quiet stretches without any of the
+    residual jitter the 1D-CNN still shows.
 \end{itemize}
 
 If a single architecture must be picked for the next iteration, the
 recommendation is \textbf{ResNet 1D}: highest robustness, cleanest
 real-data inference, and a parameter count ($\sim 75\text{k}$) small
-enough to retrain in under ten minutes on a laptop GPU. The
-CNN+Attention model is kept in the pipeline as the most promising
-candidate for longer-window analyses (\cref{sec:future-attention}).
-The baseline 1D-CNN is the fastest to train but its noise fragility
-makes it unfit for a beacon that must run across seasons.
+enough to retrain in under ten minutes on a laptop GPU. The single
+synthetic misclassification it carries is a $61$-sample asymmetric
+\texttt{bell} predicted as \texttt{fast\_ascend} --- not a structural
+failure. The CNN+Attention is the second pick: it ties the 1D-CNN at
+a perfect synthetic macro F1, comes close to the ResNet on robustness,
+and is the most promising candidate for longer-window analyses
+(\cref{sec:future-attention}). The baseline 1D-CNN is the fastest to
+train but its noise fragility makes it unfit for a beacon that must
+run across seasons.
 
 \section{Limitations}
 \label{sec:conc-limits}
@@ -71,10 +80,17 @@ explicitly.
     have no expert labelling, so we have no quantitative measure of
     how the v2 models do on real anomalies. The qualitative inspection
     in \cref{chap:v2real} is the best we can do for now.
-    \item \textbf{Short events.} The v2 event-level extractor loses
-    sensitivity on events shorter than $\sim 50$ samples, even though
-    the v2 generator is calibrated to produce events as short as $30$.
-    This is the four missed events of \cref{tab:v2-event-prf}.
+    \item \textbf{Very short events.} The event-coverage labelling
+    rule (\cref{sec:framing}) keeps events of $\sim 30$ samples and
+    above inside the training distribution, and the synthetic-test
+    segment of \cref{tab:v2-event-prf} detects them on all three
+    architectures. Events shorter than this --- $\sim 10$--$20$
+    samples, well below the lower bound of the v2 duration range and
+    of the hand-labelled real events --- would still drop out of any
+    coverage-based labelling at the present stride and window length.
+    A finer-grained labelling stage (sample-level or with a much
+    smaller window) would be required to address such events, and
+    the present pipeline does not.
     \item \textbf{Single beacon.} The pipeline assumes a univariate
     time series. Real surveillance networks involve several beacons
     and several covariates (temperature, humidity, pressure).

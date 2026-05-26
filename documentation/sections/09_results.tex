@@ -22,20 +22,22 @@ the validation macro F1 of the three models trained on the v2 dataset.
 \end{figure}
 
 \begin{itemize}[leftmargin=*, itemsep=0.25em]
-    \item All three models converge well within $35$ epochs; the
-    ResNet and the CNN+Attention model hit the early-stopping criterion
-    a few epochs earlier than the 1D-CNN.
-    \item Validation losses are lower than in v1 (the residual reaches
-    $\sim 0.24$ vs $\sim 0.57$ in v1, the 1D-CNN reaches $\sim 0.21$ vs
-    $\sim 0.73$). This is mostly a consequence of the simpler
-    classification task --- four classes against seven, with the
-    majority \texttt{Normal} class being trivial to separate from a
-    bump.
-    \item The validation F1 saturates around $0.85$--$0.87$ for all
-    three models. The remaining $13$--$15\%$ are mostly window-level
-    boundary effects: a $512$-sample window that contains $\sim 10\%$
-    of a short event can flip between the anomaly and \texttt{Normal}
-    labels depending on the windowing offset.
+    \item All three models converge well within $35$ epochs. The
+    CNN+Attention model hits the early-stopping criterion first (epoch
+    $21$), the ResNet shortly after (epoch $26$), and the 1D-CNN runs
+    the full $35$ epochs.
+    \item Validation losses are lower than in v1: the ResNet reaches
+    $\sim 0.12$ (vs $\sim 0.57$ in v1), the CNN+Attention $\sim 0.13$
+    (vs $\sim 0.62$), and the 1D-CNN $\sim 0.14$ (vs $\sim 0.73$).
+    This is mostly a consequence of the simpler classification task
+    --- four classes against seven, with the majority \texttt{Normal}
+    class being trivial to separate from a bump.
+    \item The validation F1 saturates around $0.89$--$0.92$ across the
+    three models. The remaining gap is mostly window-level boundary
+    fuzziness: under the event-coverage rule of \cref{sec:framing},
+    the windows that capture between $\sim 25\%$ and $\sim 35\%$ of a
+    short event sit on either side of the $\tau_{\text{cov}} = 0.30$
+    threshold and flip easily.
 \end{itemize}
 
 \section{Window-level test performance}
@@ -52,18 +54,22 @@ overall accuracy and the per-class accuracy.
         \toprule
         Class & \textbf{1D-CNN} & \textbf{ResNet 1D} & \textbf{CNN+Attention} \\
         \midrule
-        \texttt{Normal Background} & $0.972$ & $0.972$ & $0.944$ \\
-        \texttt{bell}              & $0.809$ & $0.858$ & $0.820$ \\
-        \texttt{fast\_ascend}      & $0.800$ & $0.854$ & $0.856$ \\
-        \texttt{fast\_descend}     & $0.659$ & $0.778$ & $0.789$ \\
+        \texttt{Normal Background} & $0.965$ & $0.965$ & $0.979$ \\
+        \texttt{bell}              & $0.884$ & $0.918$ & $0.888$ \\
+        \texttt{fast\_ascend}      & $0.885$ & $0.946$ & $0.915$ \\
+        \texttt{fast\_descend}     & $0.895$ & $0.878$ & $0.876$ \\
         \midrule
-        \textbf{Overall accuracy}  & $0.956$ & $0.961$ & $0.934$ \\
+        \textbf{Overall accuracy}  & $0.958$ & $0.960$ & $0.972$ \\
         \bottomrule
     \end{tabular}
     \caption{Window-level accuracy on the held-out v2 test set
-    ($62\,485$ windows). \texttt{fast\_descend} is the hardest class
-    on all three models --- short events on the falling edge are
-    easily confused with windowing-induced boundary residue.}
+    ($62\,485$ windows). The per-class accuracies are tightly grouped:
+    no anomaly class drops below $0.87$, and the gap between the
+    easiest (\texttt{fast\_ascend} on the ResNet, $0.946$) and the
+    hardest (\texttt{fast\_descend} on the CNN+Attention, $0.876$) is
+    well under one decile. The CNN+Attention has the highest overall
+    accuracy, driven mostly by a near-perfect $0.979$ on
+    \texttt{Normal Background}.}
     \label{tab:test-window}
 \end{table}
 
@@ -71,8 +77,8 @@ overall accuracy and the per-class accuracy.
 \label{sec:res-event}
 
 The window-level numbers in \cref{tab:test-window} are misleading at
-the operational level for the same reason as in v1: a window is
-labelled by majority anomaly content and the boundary windows of an
+the operational level for the same reason as in v1: a window inherits
+the class of the event it captures, and the boundary windows of an
 event flip between the anomaly class and \texttt{Normal} easily. The
 right metric is event-level (\cref{sec:event-eval}), computed on a
 continuous $100\,000$-sample segment.
@@ -87,11 +93,13 @@ models are shown in \cref{fig:v2-confmat}.
     \includegraphics[width=\linewidth]{figures/v2_confusion_matrices}
     \caption{v2 event-level confusion matrices on the synthetic test
     segment. The leftmost column of each panel is the ``missed event''
-    column --- a true event that has no overlapping prediction. All
-    three models miss the same $4$ events (out of $15$): one
-    \texttt{fast\_ascend} and three \texttt{fast\_descend}, all of
-    them short events at the borderline duration of the detection
-    threshold.}
+    column --- a true event that has no overlapping prediction. No
+    event is missed by any of the three models, including the four
+    shortest ones in the segment ($26$, $28$, $30$ and $45$ samples,
+    near the lower bound of the v2 duration range). The 1D-CNN and
+    CNN+Attention classify all $15$ events correctly; the ResNet has a
+    single off-diagonal entry --- one $61$-sample \texttt{bell}
+    predicted as \texttt{fast\_ascend}.}
     \label{fig:v2-confmat}
 \end{figure}
 
@@ -108,36 +116,49 @@ The per-class precision/recall/F1 are summarised in
         \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
         Class & P & R & F1 & P & R & F1 & P & R & F1 \\
         \midrule
-        \texttt{bell}         & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
-        \texttt{fast\_ascend} & 1.00 & 0.75 & 0.86 & 1.00 & 0.75 & 0.86 & 1.00 & 0.75 & 0.86 \\
-        \texttt{fast\_descend}& 1.00 & 0.57 & 0.73 & 1.00 & 0.57 & 0.73 & 1.00 & 0.57 & 0.73 \\
+        \texttt{bell}         & 1.00 & 1.00 & 1.00 & 1.00 & 0.75 & 0.86 & 1.00 & 1.00 & 1.00 \\
+        \texttt{fast\_ascend} & 1.00 & 1.00 & 1.00 & 0.80 & 1.00 & 0.89 & 1.00 & 1.00 & 1.00 \\
+        \texttt{fast\_descend}& 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
         \midrule
-        \textbf{Macro avg.}   & \textbf{1.00} & \textbf{0.77} & \textbf{0.86} & \textbf{1.00} & \textbf{0.77} & \textbf{0.86} & \textbf{1.00} & \textbf{0.77} & \textbf{0.86} \\
+        \textbf{Macro avg.}   & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} & \textbf{0.93} & \textbf{0.92} & \textbf{0.92} & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} \\
         \bottomrule
     \end{tabular}
     \caption{v2 per-class precision (P), recall (R) and F1 at the event
-    level. All three models cluster around a $\sim 86\%$ macro F1 ---
-    the four missed events are the same on all three models and
-    correspond to the very short ($<60$-sample) end of the duration
-    distribution, where the detection-driven event extractor
-    (\cref{sec:event-eval}) loses sensitivity.}
+    level. The 1D-CNN and CNN+Attention models achieve a perfect
+    $1.00$ macro F1 on the $15$-event segment; the ResNet sits at
+    $0.92$ because of a single \texttt{bell}-as-\texttt{fast\_ascend}
+    misclassification (event $\#9$ in the inference log, $61$ samples
+    long).}
     \label{tab:v2-event-prf}
 \end{table}
 
-\paragraph{Why all three models score the same.} The four missed
-events are extremely short ($26$, $30$, $45$, $28$ samples) and sit
-near the lower bound of the v2 duration range. With a sliding-window
-stride of $10$ and a window length of $512$, an event shorter than
-$\sim 50$ samples occupies only $\lesssim 10\%$ of the windows that
-overlap it --- right at the labelling threshold of
-\cref{sec:framing}. Sub-threshold events are silently mapped to
-\texttt{Normal Background} by the per-window labelling rule, so the
-network is not given a chance to predict the class. This is a feature
-of the event extractor, not of the three architectures.
+\paragraph{The short events are all detected.} The four shortest
+events of the segment ($26$, $28$, $30$ and $45$ samples) sit near
+the lower bound of the v2 duration range, well below the $W = 512$
+window length. They are correctly classified by all three
+architectures, which confirms operationally that the event-coverage
+labelling rule of \cref{sec:framing} keeps such events in the
+training distribution: the network is given a positive example for
+each one, and learns to fire on them at inference time.
 
-\paragraph{Precision and false positives.} Precision is $1.00$ for all
-three models on all three classes: the v2 networks do not hallucinate.
-On the synthetic test segment this is exactly what we want.
+\paragraph{The single residual error is on the ResNet.} The one
+off-diagonal entry of \cref{tab:v2-event-prf} is a $61$-sample
+\texttt{bell} that the ResNet predicts as \texttt{fast\_ascend} at
+$78\%$ confidence (event $\#9$ in
+\texttt{architectures/logs/resnet/inference\_log.txt}). It is a
+short, asymmetric \texttt{bell} whose rising flank dominates the
+window, which is genuinely \texttt{fast\_ascend}-like; the 1D-CNN and
+CNN+Attention models classify it correctly. We do not consider this a
+structural failure of the ResNet --- it is one event out of fifteen
+on a single $100\,000$-sample test segment --- but flag it as a
+genuine point of differentiation between the three architectures.
+
+\paragraph{Precision and false positives.} No model produces a single
+false positive on the segment ($P = 1.00$ for $8$ of the $9$
+class--model combinations; the one $P < 1$ entry is a downstream
+consequence of the single ResNet misclassification, not of an
+extraneous event). The v2 networks do not hallucinate on this
+segment.
 
 \section{Cost--performance comparison}
 \label{sec:res-cost}
@@ -149,17 +170,21 @@ the three architectures on the v2 setup.
     \centering
     \includegraphics[width=\linewidth]{figures/model_cost}
     \caption{v2 cost--performance trade-off. \textbf{Left}: parameter
-    count. \textbf{Centre}: total training time on a single RTX 5060
-    Laptop GPU (the 1D-CNN ran the full $35$ epochs; the other two
-    triggered early stopping after $\sim 27$ epochs). \textbf{Right}:
-    event-level macro F1 on the synthetic test segment. Because the
-    three networks converge to the same set of detected events on this
-    segment, the F1 bars are equal.}
+    count ($22.6$k, $74.5$k and $109.5$k for the 1D-CNN, ResNet and
+    CNN+Attention respectively). \textbf{Centre}: total training time
+    on a single RTX 5060 Laptop GPU (the 1D-CNN ran the full $35$
+    epochs in $\sim 3.7$ min, the CNN+Attention stopped early at
+    epoch $21$ after $\sim 4.8$ min, the ResNet at epoch $26$ after
+    $\sim 5.3$ min). \textbf{Right}: event-level macro F1 on the
+    synthetic test segment. The 1D-CNN and the CNN+Attention reach a
+    perfect $1.00$; the ResNet sits at $0.92$ because of the single
+    misclassification discussed above.}
     \label{fig:model-cost}
 \end{figure}
 
-On v2 the three architectures are essentially tied at the event level
-on the synthetic test set. The picture changes when we move to
-robustness sweeps (\cref{chap:robustness}) and to the real-data
-inference (\cref{chap:v2real}), where the differences in the
-architectures' inductive biases re-emerge.
+On the synthetic test set the three architectures are clustered
+within $8$ F1 points, with the smallest (1D-CNN) and the largest
+(CNN+Attention) tied at the ceiling. The picture changes when we
+move to robustness sweeps (\cref{chap:robustness}) and to the
+real-data inference (\cref{chap:v2real}), where the differences in
+the architectures' inductive biases re-emerge.
