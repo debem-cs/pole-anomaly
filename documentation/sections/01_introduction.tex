@@ -1,172 +1,103 @@
 \chapter{Introduction}
 \label{chap:intro}
 
-\section{Context: continuous radiological surveillance}
+\section{Context}
 \label{sec:context}
 
-Environmental monitoring beacons measure the local radiation level by
-counting the gamma photons reaching a scintillation detector in a fixed
-sampling interval --- typically one minute. The resulting time series,
-called the \emph{gamma dose}, reflects the natural radioactive
-background, modulated by atmospheric conditions (temperature, humidity,
-pressure) and, hopefully rarely, by accidental or deliberate
-radiological events: dispersal of a radioactive plume, a leak from a
-nearby facility, the passage of a contaminated source.
+Environmental surveillance beacons monitor radiological pollution by counting,
+at a fixed sampling interval (one minute here), the gamma photons that reach a
+scintillation detector. The resulting \emph{gamma-dose} time series reflects the
+natural radioactive background, modulated by weather and, rarely, by a
+radiological event: the passage of a contaminated source, a leak, or the
+dispersal of a radioactive plume. The operational goal is to detect and
+\emph{identify} such events as early as possible, directly from the shape they
+leave in the signal. Three properties make this harder than textbook anomaly
+detection: the per-sample noise is comparable in size to weak events; the
+baseline drifts slowly with meteorological conditions, so no fixed threshold
+works; and different physical phenomena leave \emph{different} temporal
+signatures, so detection alone is not enough --- the response must classify the
+shape.
 
-The operational goal of a network of such beacons is to detect and
-classify those rare events \emph{as early as possible} so that
-mitigation decisions can be taken with confidence. Three properties
-make this task fundamentally harder than industrial anomaly detection
-in mechanical or financial time series:
-
-\begin{enumerate}[leftmargin=*, itemsep=0.2em]
-    \item \textbf{High noise-to-signal ratio.} The sensor statistics
-    produce a high-frequency dispersion that is comparable in magnitude
-    to many anomalies of interest.
-    \item \textbf{Slow baseline drift.} The mean radiological background
-    is not stationary --- it wanders slowly with weather and seasonal
-    factors, so an anomaly cannot be defined by a fixed threshold on
-    the raw signal.
-    \item \textbf{Class diversity.} Different physical phenomena leave
-    different temporal signatures: a sudden spike (a passing source),
-    a slow ramp-up (an approaching plume), a sustained plateau (a
-    deposited contamination), and so on. A meaningful response requires
-    not just detection but classification.
-\end{enumerate}
-
-\section{Problem statement}
+\section{Problem formalisation}
 \label{sec:problem}
 
-The project, supervised by Élisabeth Lahalle at the \emph{Laboratoire
-des Signaux et Systèmes} (L2S, CentraleSup\'elec), formulates the
-problem as a \textbf{streaming multi-class classification task} on a
-univariate gamma-dose time series. Given a sliding window of recent
-samples, the system must output one class label per window. The label
-set evolved between the two iterations of the project:
+We treat the problem as supervised classification on a univariate signal.
+Let $x = (x_1,\dots,x_N) \in \R^{N}$ be the gamma-dose series sampled at uniform
+intervals. Each instant $t$ belongs to one of $K$ classes: a \texttt{Normal
+Background} class (label $0$) and $K-1$ anomaly morphologies. The instantaneous
+value $x_t$ carries almost no class information --- a class is defined by the
+local \emph{shape} of the signal --- so we classify fixed-length windows rather
+than samples.
 
-\begin{center}
-\begin{tabular}{ll}
-v1 (seven classes) & \texttt{Normal} ~|~ \texttt{bell} ~|~ \texttt{bell\_sq} ~|~
-                     \texttt{fast\_ascend} ~|~ \texttt{fast\_descend} ~|~
-                     \texttt{M} ~|~ \texttt{square} \\[0.4em]
-v2 (four classes)  & \texttt{Normal} ~|~ \texttt{bell} ~|~
-                     \texttt{fast\_ascend} ~|~ \texttt{fast\_descend}
-\end{tabular}
-\end{center}
+\paragraph{Windowing.} For a window length $W$ we map each position $t$ to the
+sub-sequence
+\begin{equation}
+    \mathbf{x}^{(t)} = (x_{t-W+1},\,\dots,\,x_t) \in \R^{W},
+    \label{eq:window}
+\end{equation}
+and ask a model $f_\theta:\R^{W}\!\to\R^{K}$, with parameters $\theta$, to map it
+to class logits whose softmax
+$\hat{p}^{(t)} = \softmax\!\big(f_\theta(\mathbf{x}^{(t)})\big) \in \Delta^{K-1}$
+is a distribution over the $K$ classes.\footnote{$\Delta^{K-1}$ is the
+probability simplex, i.e.\ the set of non-negative vectors of $\R^{K}$ summing to
+$1$.} We use $W=512$ samples ($\approx 8.5$ hours). Each window receives a single
+label $y^{(t)}\in\{0,\dots,K-1\}$ through the coverage rule of
+\cref{sec:windowing}.
 
-The reasons for shrinking the class set in v2 will become clear in
-\cref{chap:reanalysis,chap:v2gen}: only the three retained shapes
-actually appear in the seventeen plausible events that we
-hand-labelled on the real recordings.
+\paragraph{Learning objective.} Given a training set
+$\mathcal{D}=\{(\mathbf{x}_i,y_i)\}$ of labelled windows, $\theta$ is fitted by
+minimising the class-weighted cross-entropy
+\begin{equation}
+    \mathcal{L}(\theta)
+    = -\frac{1}{|\mathcal{D}|}\sum_{(\mathbf{x},y)\in\mathcal{D}}
+        w_y \,\log \softmax\!\big(f_\theta(\mathbf{x})\big)_y ,
+    \qquad
+    w_c = \frac{|\mathcal{D}|}{K\,n_c},
+    \label{eq:objective}
+\end{equation}
+where $n_c$ is the number of training windows of class $c$ and the weight $w_c$
+compensates the strong class imbalance (\cref{sec:training}).
 
-\section{Why deep learning?}
+\paragraph{Evaluation objective.} Sample- or window-level accuracy over-counts
+the many background windows and the fuzzy boundaries of an event. The
+operationally meaningful quantity is whether each \emph{event} is detected and
+correctly named. We therefore also report an \emph{event-level} macro
+$F_1$-score (\cref{sec:event-eval}): predictions are aggregated into a per-sample
+confidence trace, contiguous non-background runs form predicted events, and each
+is matched against the ground-truth events. This bridges window classification
+and the detection task the beacon actually performs.
+
+\section{Why deep learning, and what we validate}
 \label{sec:why-dl}
 
-A classical signal-processing pipeline --- baseline removal followed by
-a hand-tuned shape-matching template bank --- would in principle
-suffice on clean shapes, but it scales poorly to:
-\begin{itemize}[leftmargin=*, itemsep=0.2em]
-    \item \emph{Shape variability}: real events do not match a template
-    perfectly; their amplitude, duration and time-warping vary.
-    \item \emph{Noise}: at the noise levels observed in the real data,
-    cross-correlation with a template becomes unreliable.
-    \item \emph{Class proliferation}: adding a new event class requires
-    redesigning the bank.
-\end{itemize}
+A classical pipeline --- baseline removal followed by a bank of hand-tuned
+matched filters --- works on clean, isolated shapes but scales poorly: real
+events are time-warped and noisy, cross-correlation with a template degrades
+quickly at the observed noise level, and every new morphology requires
+redesigning the bank. Convolutional and attention-based networks instead
+\emph{learn} their own shape features from data and are, by now, a strong
+baseline for time-series classification (\cref{chap:related}). The project brief
+\cite{centralesupelec_projet} explicitly suggests evaluating convolutional and
+attention layers, which is what we do.
 
-Deep neural networks learn their own features from data, and the
-convolutional and attention building blocks of modern architectures
-are very effective at recognising local and global patterns in 1D
-signals. The reference project brief\footnote{See
-\texttt{biblio/projet.pdf}.} explicitly suggests evaluating
-convolutional and attention layers, which we did.
+Crucially, \textbf{no labelled real events are available}. Following the
+methodological choice that a deliberately simplified, well-understood synthetic
+model is the right tool to \emph{validate an approach}, we generate a synthetic
+benchmark whose noise statistics are calibrated to real recordings, and we
+evaluate the networks only on held-out \emph{synthetic} data. Running networks
+trained on a simplified model against real signals would measure the modelling
+gap, not the classifier, and is deliberately left as future work
+(\cref{chap:conclusion}).
 
-\section{The two iterations}
-\label{sec:two-iters}
+\section{Contributions and outline}
+\label{sec:contrib}
 
-This report covers two iterations of the same end-to-end pipeline.
-
-\paragraph{Iteration 1 (v1).} A noise model fitted on the four months
-of 2015 data --- IID Gaussian high-frequency component on an
-Ornstein--Uhlenbeck baseline --- and six hand-designed anomaly
-templates, injected at a density of $\sim 7$ events per $10\text{k}$
-samples into a $10^{7}$-sample synthetic signal. Three architectures
-of increasing complexity (1D-CNN, ResNet 1D, CNN+Attention) were
-trained on this corpus. On the synthetic test set the system worked
-very well: all three architectures cleared a $90\%$ event-level macro
-F1, the residual network reached $100\%$. But on the real recordings
-the system failed dramatically, in three architecture-specific ways.
-
-\paragraph{Iteration 2 (v2).} A re-analysis of the real background
-revealed that the high-frequency residual is autocorrelated rather than
-white, well described by an AR(1) process with $\varphi \approx 0.86$.
-A round of hand-labelling identified $17$ plausible events across the
-four months, from which we measured empirical event amplitudes
-(log-uniform $[15, 40]$ counts), durations (log-uniform $[30, 1000]$
-samples), and a template breakdown (only \texttt{bell},
-\texttt{fast\_ascend}, \texttt{fast\_descend} appear). The generator
-was re-tuned accordingly --- AR(1) noise, sparser injection
-($\sim 1.5$ events per $10\text{k}$ samples), three templates, absolute
-amplitude/duration scales --- and the same three architectures were
-re-trained on the new corpus. On the real recordings, the v2 models
-sit on the \texttt{Normal Background} class for the quiet stretches and
-fire only where a visible event is present.
-
-\section{Contributions}
-\label{sec:contributions}
-
-Concretely, this project produced:
-\begin{enumerate}[leftmargin=*, itemsep=0.2em]
-    \item A \textbf{statistical characterisation} of four months of
-    real 2015 gamma-dose recordings, in two passes of increasing depth:
-    a v1 fit of an IID-Gaussian-plus-OU model, and a v2 reanalysis that
-    establishes the AR(1) structure of the high-frequency residual
-    (\cref{chap:data,chap:reanalysis}).
-    \item A \textbf{set of seventeen hand labels} of plausible real
-    events, with empirical amplitudes, durations and shape assignments
-    (\cref{sec:reanalysis-labels}).
-    \item Two generations of a \textbf{synthetic dataset generator}: v1
-    (white noise, six templates, dense injection) and v2 (AR(1) noise,
-    three templates, sparse injection, calibrated against the labels).
-    Both produce a $10^{7}$-sample labelled signal in constant memory
-    (\cref{chap:v1gen,chap:v2gen}).
-    \item Three \textbf{PyTorch architectures} of increasing complexity
-    --- a baseline 1D-CNN ($\sim 23\text{k}$ params), a residual network
-    ($\sim 75\text{k}$), and a hybrid CNN+Transformer with multi-head
-    self-attention ($\sim 110\text{k}$) --- all sharing the same I/O
-    contract (\cref{chap:archi}).
-    \item A \textbf{training and event-level evaluation pipeline}
-    bridging sample-wise classification accuracy and operational
-    event-detection metrics (\cref{chap:archi}).
-    \item Quantitative \textbf{synthetic-test results} for v1 and v2,
-    and a \textbf{robustness study} that sweeps background noise and
-    shape deformation independently for both (\cref{chap:v1results,%
-    chap:results,chap:robustness}).
-    \item Application of both v1 and v2 models to the real 2015 data,
-    with a careful \textbf{diagnostic analysis} of where v1 fails and
-    how v2 closes the gap qualitatively
-    (\cref{chap:v1real,chap:v2real}).
-\end{enumerate}
-
-\section{Report organisation}
-\label{sec:org}
-
-\Cref{chap:theory} provides the theoretical background ---
-convolutions, residual learning, attention mechanisms, and the relevant
-training machinery --- with enough mathematical detail to make the
-architectures self-contained for a reader without a deep-learning
-background. \Cref{chap:data} describes the real 2015 recordings and
-the v1 noise model that the project initially fitted to them.
-\Cref{chap:v1gen} presents the v1 synthetic generator; \cref{chap:archi}
-the three networks shared between v1 and v2;
-\cref{chap:v1results,chap:v1real} the v1 synthetic-test results and
-the real-data failure that motivated v2. \Cref{chap:reanalysis} is the
-re-analysis chapter --- AR(1) noise, hand labels, what was missing in
-v1. \Cref{chap:v2gen} documents the v2 generator. \Cref{chap:results,%
-chap:robustness,chap:v2real} report the v2 results: training,
-event-level evaluation, robustness sweeps, real-data inference.
-\Cref{chap:conclusion} concludes.
-
-All code, data generation scripts and figure-generation utilities
-necessary to reproduce the contents of this report are included in the
-project repository.
+This report (i) formalises radiological-event identification as windowed
+multi-class classification (\cref{sec:problem}); (ii) positions the work against
+the deep-learning time-series literature (\cref{chap:related}); (iii) describes a
+simplified, statistically calibrated synthetic gamma-dose generator
+(\cref{chap:data}); (iv) specifies three architectures of increasing complexity
+and a shared training and event-evaluation pipeline (\cref{chap:methods}); and
+(v) compares them on classification performance, robustness and computational
+cost (\cref{chap:results}). \Cref{chap:conclusion} concludes and lays out the
+path towards more realistic signal models and real-data evaluation.

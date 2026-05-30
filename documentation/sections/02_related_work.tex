@@ -1,0 +1,79 @@
+\chapter{Related work and positioning}
+\label{chap:related}
+
+This chapter situates our work in the deep-learning literature for time series,
+limited to the ideas we actually build on, and states our positioning at the
+end.
+
+\section{Deep learning for time-series classification}
+\label{sec:rw-tsc}
+
+Time-series classification (TSC) has shifted from distance-based methods
+(e.g.\ nearest neighbour with dynamic time warping) to deep learning. The review
+of Ismail Fawaz et al.\ \cite{intfawaz2019deep} benchmarks the main families and
+identifies fully-convolutional and residual networks as the strongest
+general-purpose baselines, a conclusion already drawn by Wang et al.\
+\cite{wang2017time}, whose end-to-end fully-convolutional network (FCN) and 1D
+ResNet outperform most hand-crafted pipelines without feature engineering. These
+two works directly motivate our choice of a convolutional baseline and a
+residual variant. Temporal convolutional networks \cite{bai2018empirical} show,
+more generally, that convolutions with a sufficient receptive field match or beat
+recurrent models on sequence tasks while being cheaper to train --- relevant to
+an operational beacon with a limited compute budget.
+
+\section{Convolutional and residual architectures}
+\label{sec:rw-cnn}
+
+The convolutional building block goes back to LeCun et al.\
+\cite{lecun1998gradient}: weight-shared local filters give translation
+equivariance and a parameter count independent of the input length, which is
+exactly what is needed to detect an anomaly that may appear anywhere in a window.
+Very deep stacks are hard to optimise because gradients vanish; He et al.\
+\cite{he2016deep} solve this with \emph{residual} connections that let a block
+default to the identity, making depth essentially free. Training is further
+stabilised by normalisation: batch normalisation \cite{ioffe2015batch} reduces
+internal covariate shift but couples train and inference statistics, whereas
+group normalisation \cite{wu2018group} computes statistics per sample and so
+behaves identically at train and inference time --- a property we exploit for a
+signal whose amplitude scale drifts.
+
+\section{Attention and Transformer encoders}
+\label{sec:rw-attn}
+
+Self-attention \cite{vaswani2017attention} lets every position in a sequence
+attend to every other with a learnt, content-dependent weighting, giving an
+unbounded receptive field in a single layer; layer normalisation
+\cite{ba2016layer} and a learnable aggregation token \cite{devlin2019bert} make
+such encoders practical for classification. Hybrids that place a Transformer
+encoder on top of a convolutional stem are now common for noisy physiological
+signals: Hu and Chen \cite{hu2022eeg}, cited in the project brief, combine
+convolutions with multi-head self-attention for EEG emotion recognition. Our
+third architecture follows the same recipe, transposed to gamma-dose signals.
+
+\section{Anomaly detection and explainability}
+\label{sec:rw-ad}
+
+Our task is closer to \emph{classification of known morphologies} than to
+unsupervised anomaly detection, the latter surveyed by Bl\'azquez-Garc\'ia et
+al.\ \cite{blazquezgarcia2021review}; we borrow from it the event-level,
+detection-oriented evaluation rather than a purely point-wise accuracy. Finally,
+because an operational alert must be trustworthy, explainability matters: the
+brief points to Grad-CAM \cite{selvaraju2017gradcam}, which produces
+gradient-based saliency over the input. Our convolutional models expose the hooks
+required for it (\cref{chap:conclusion}), but a full explainability study is out
+of scope here.
+
+\section{Positioning}
+\label{sec:rw-position}
+
+We adopt established architectures --- a convolutional baseline, a residual
+network \cite{he2016deep,wang2017time}, and a CNN--Transformer hybrid
+\cite{vaswani2017attention,hu2022eeg} --- rather than proposing a new one. The
+specific contribution of this project is therefore not architectural but
+methodological and applicative: (i) a \emph{simplified yet statistically
+calibrated} synthetic generator for noisy gamma-dose signals with controllable
+anomaly morphologies, and (ii) a controlled, like-for-like comparison of the
+three architectures along the three axes named in the brief --- classification
+performance, computational cost, and robustness to distribution shift. To our
+knowledge this combination has not been reported for radiological-beacon anomaly
+classification.

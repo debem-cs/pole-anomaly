@@ -1,33 +1,51 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{ba2016layer}
 Jimmy~Lei Ba, Jamie~Ryan Kiros, and Geoffrey~E. Hinton.
 \newblock Layer normalization.
 \newblock {\em arXiv preprint arXiv:1607.06450}, 2016.
 
+\bibitem{bai2018empirical}
+Shaojie Bai, J.~Zico Kolter, and Vladlen Koltun.
+\newblock An empirical evaluation of generic convolutional and recurrent
+  networks for sequence modeling.
+\newblock {\em arXiv preprint arXiv:1803.01271}, 2018.
+
+\bibitem{blazquezgarcia2021review}
+Ane Bl{\'a}zquez-Garc{\'i}a, Angel Conde, Usue Mori, and Jose~A. Lozano.
+\newblock A review on outlier/anomaly detection in time series data.
+\newblock {\em ACM Computing Surveys}, 54(3):1--33, 2021.
+
 \bibitem{devlin2019bert}
 Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
-\newblock Bert: Pre-training of deep bidirectional transformers for language
+\newblock {BERT}: Pre-training of deep bidirectional transformers for language
   understanding.
-\newblock In {\em Proceedings of NAACL-HLT}, 2019.
+\newblock In {\em Proceedings of NAACL-HLT}, pages 4171--4186, 2019.
 
 \bibitem{he2016deep}
 Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
 \newblock Deep residual learning for image recognition.
-\newblock In {\em Proceedings of the IEEE Conference on Computer Vision and
-  Pattern Recognition (CVPR)}, 2016.
+\newblock In {\em IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, pages 770--778, 2016.
 
 \bibitem{hu2022eeg}
-Z.~Hu and L.~Chen.
-\newblock Eeg-based emotion recognition using convolutional recurrent neural
-  network with multi-head self attention.
-\newblock {\em Applied Sciences}, 12(21), 2022.
+Zhangfang Hu and Libujie Chen.
+\newblock {EEG}-based emotion recognition using convolutional recurrent neural
+  network with multi-head self-attention.
+\newblock {\em Applied Sciences}, 12(21):11255, 2022.
 
 \bibitem{ioffe2015batch}
 Sergey Ioffe and Christian Szegedy.
 \newblock Batch normalization: Accelerating deep network training by reducing
   internal covariate shift.
-\newblock In {\em International Conference on Machine Learning (ICML)}, 2015.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  448--456, 2015.
+
+\bibitem{intfawaz2019deep}
+Hassan Ismail~Fawaz, Germain Forestier, Jonathan Weber, Lhassane Idoumghar, and
+  Pierre-Alain Muller.
+\newblock Deep learning for time series classification: a review.
+\newblock {\em Data Mining and Knowledge Discovery}, 33(4):917--963, 2019.
 
 \bibitem{kingma2015adam}
 Diederik~P. Kingma and Jimmy Ba.
@@ -35,16 +53,50 @@ Diederik~P. Kingma and Jimmy Ba.
 \newblock In {\em International Conference on Learning Representations (ICLR)},
   2015.
 
+\bibitem{centralesupelec_projet}
+Elisabeth Lahalle.
+\newblock Suivi dynamique de pollution radiologique par {IA}.
+\newblock Project brief, P\^ole Projet Data Science, CentraleSup\'elec / L2S,
+  2025.
+
+\bibitem{lecun1998gradient}
+Yann LeCun, L{\'e}on Bottou, Yoshua Bengio, and Patrick Haffner.
+\newblock Gradient-based learning applied to document recognition.
+\newblock {\em Proceedings of the IEEE}, 86(11):2278--2324, 1998.
+
+\bibitem{paszke2019pytorch}
+Adam Paszke, Sam Gross, Francisco Massa, et~al.
+\newblock {PyTorch}: An imperative style, high-performance deep learning
+  library.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  pages 8024--8035, 2019.
+
+\bibitem{selvaraju2017gradcam}
+Ramprasaath~R. Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam,
+  Devi Parikh, and Dhruv Batra.
+\newblock {Grad-CAM}: Visual explanations from deep networks via gradient-based
+  localization.
+\newblock In {\em IEEE International Conference on Computer Vision (ICCV)},
+  pages 618--626, 2017.
+
 \bibitem{vaswani2017attention}
 Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones,
   Aidan~N. Gomez, {\L}ukasz Kaiser, and Illia Polosukhin.
 \newblock Attention is all you need.
 \newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
-  2017.
+  pages 5998--6008, 2017.
+
+\bibitem{wang2017time}
+Zhiguang Wang, Weizhong Yan, and Tim Oates.
+\newblock Time series classification from scratch with deep neural networks: A
+  strong baseline.
+\newblock In {\em International Joint Conference on Neural Networks (IJCNN)},
+  pages 1578--1585, 2017.
 
 \bibitem{wu2018group}
 Yuxin Wu and Kaiming He.
 \newblock Group normalization.
-\newblock In {\em European Conference on Computer Vision (ECCV)}, 2018.
+\newblock In {\em European Conference on Computer Vision (ECCV)}, pages 3--19,
+  2018.
 
 \end{thebibliography}

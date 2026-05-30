@@ -1,0 +1,74 @@
+\chapter{Conclusion and perspectives}
+\label{chap:conclusion}
+
+\section{Summary}
+\label{sec:conc-summary}
+
+We formalised the identification of radiological events as sliding-window
+multi-class classification of a noisy gamma-dose signal, and validated a
+deep-learning approach to it on a controlled synthetic benchmark. The benchmark
+rests on a deliberately simplified signal model --- white Gaussian noise on an
+Ornstein--Uhlenbeck baseline, with parameters calibrated to four months of real
+2015 recordings and six injected anomaly morphologies. On held-out synthetic
+data, all three architectures reach a strong event-level performance (macro $F_1$
+from $0.93$ to $1.00$ on a $59$-event segment), with no false alarms. The
+residual network is the best overall: a perfect event-level score, the highest
+window accuracy, and --- decisively --- the only model besides the attention
+hybrid that resists background-noise growth, while the baseline 1D-CNN collapses
+to a single class. Self-attention did not improve on the ResNet at the
+$512$-sample window scale.
+
+\section{Architecture recommendation}
+\label{sec:conc-reco}
+
+For this task we recommend the \textbf{ResNet 1D}: it combines the best accuracy
+and robustness with a moderate cost ($\sim 75$k parameters, $\sim 10$ min to
+train on a laptop GPU). The 1D-CNN is attractive only where compute is extremely
+constrained \emph{and} noise conditions are stable; the CNN+Attention is the
+natural candidate if the window is later extended to capture long-range context.
+
+\section{Limitations}
+\label{sec:conc-limits}
+
+The results are, by construction, \emph{synthetic}. The signal model is simple in
+two ways that matter: its high-frequency noise is independent in time (real
+sensor noise is correlated), and its anomaly density is far higher than a real
+beacon's. As stressed throughout, this is appropriate for validating the
+approach but means the numbers above should not be read as real-world detection
+rates. There is also no labelled real test set, so real performance cannot yet be
+measured.
+
+\section{Perspectives}
+\label{sec:conc-future}
+
+The natural next step --- in the supervisor's words, ``to go further'' --- is to
+close the gap to real signals and only then evaluate on them:
+\begin{itemize}[leftmargin=*, itemsep=0.25em]
+    \item \textbf{More realistic signal models.} Replace the white noise by a
+    coloured (e.g.\ autoregressive) process matching the empirical
+    autocorrelation of the real residual, lower the anomaly density towards the
+    real one, and calibrate amplitudes/durations and the morphology set to events
+    actually observed. The very same validation pipeline can then be re-run on
+    this harder benchmark.
+    \item \textbf{A labelled real test set.} Expert labelling of the real
+    recordings would, for the first time, allow event-level precision and recall
+    to be measured on real data --- the only sound way to evaluate networks
+    trained on a synthetic model.
+    \item \textbf{Explainability.} The convolutional models expose their last
+    feature map for Grad-CAM \cite{selvaraju2017gradcam}, and the encoder's
+    attention maps are directly interpretable; both would let an operator verify
+    that a prediction attends to the right part of an event.
+    \item \textbf{Longer windows and richer inputs.} Longer windows would give
+    the attention model the context it lacked here, and the convolutions already
+    accept extra channels, so the companion meteorological signals (temperature,
+    humidity, pressure) could be added as inputs.
+\end{itemize}
+
+\section{Final word}
+\label{sec:conc-final}
+
+On a clean, controlled benchmark the approach works well and the architectural
+comparison is informative: depth and group normalisation, not attention, are what
+buy robustness at this window length. The honest limitation --- that this is
+synthetic validation, not real-world evaluation --- is also the clearest signpost
+for the next iteration.

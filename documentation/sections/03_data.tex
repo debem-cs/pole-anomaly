@@ -1,138 +1,152 @@
-\chapter{Real 2015 data and the v1 noise model}
+\chapter{Signal model and synthetic data}
 \label{chap:data}
 
-This chapter introduces the real-world data the project is anchored to
-(\cref{sec:real-data}) and the first-pass statistical model the
-\emph{v1} generator was built on (\cref{sec:v1-noise-model}). The v1
-generator itself --- templates, deformations, the end-to-end
-algorithm --- is described in \cref{chap:v1gen}. The deeper background
-re-analysis that motivated the v2 generator is deferred to
-\cref{chap:reanalysis}.
+No labelled real events are available, so the networks are trained and evaluated
+on synthetic data. This chapter first characterises the real recordings just
+enough to fix realistic parameters (\cref{sec:realdata}), then defines the
+background model (\cref{sec:noise}), the anomaly morphologies
+(\cref{sec:templates}) and the generator (\cref{sec:generator}). The model is
+\emph{deliberately simplified}: its role is to validate the classification
+approach under controlled, well-understood conditions, not to reproduce real
+signals faithfully.
 
-\section{Real 2015 gamma dose data}
-\label{sec:real-data}
+\section{Real data: a brief characterisation}
+\label{sec:realdata}
 
-\subsection{Source}
-
-The reference recordings are four months of gamma dose measurements
-collected in 2015 by an environmental surveillance beacon and provided
-by the project supervisor. The dates are
-\begin{center}
-\texttt{24/02/2015 11:20} \quad \texttt{30/04/2015 13:10} \quad
-\texttt{22/06/2015 07:31} \quad \texttt{20/10/2015 09:18},
-\end{center}
-each segment lasting approximately $40\,000$ minutes (about $28$ days)
-at one sample per minute. The four months are stored as separate
-columns in a single text file under \texttt{data-gen/data/}\,.
+The reference data are four months of 2015 gamma-dose recordings provided by the
+supervisor (Feb, Apr, Jun, Oct), each $\approx 40{,}000$ samples at one sample
+per minute. \Cref{fig:real-overview} shows a representative month. Two components
+are visible: a slowly varying baseline around $\sim 99$ counts, and a
+high-frequency, zero-mean fluctuation of a few counts. Separating the two with a
+moving-average baseline $b_t$ and residual $r_t = x_t - b_t$ gives the per-month
+statistics of \cref{tab:real-stats}: the baseline sits near $99$ counts and the
+high-frequency residual has standard deviation $\sigma \approx 2.3$--$2.7$. These
+few numbers are all we take from the real data.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/real_data_overview}
-    \caption{The four months of real gamma-dose recordings. Each panel
-    is a continuous $\sim 40$k-sample segment at one sample per minute.
-    The signal is centred around $\sim 99$ counts with a high-frequency
-    dispersion of a few counts and slow drifts of a few units; a small
-    number of sharper excursions are visible.}
+    \caption{The four months of real 2015 gamma-dose recordings (one sample per
+    minute). The signal is a slowly drifting baseline near $99$ counts plus a
+    few-count high-frequency fluctuation, with occasional sharper excursions.}
     \label{fig:real-overview}
 \end{figure}
-
-\subsection{Statistical characterisation}
-\label{sec:stat-charac}
-
-\Cref{fig:real-overview} suggests that the signal is the superposition
-of (i) a slowly-varying baseline and (ii) a high-frequency, zero-mean
-fluctuation. We confirm this with a moving-average decomposition of
-window length $w = 480$ samples
-(\cref{fig:real-decomp}):
-\begin{equation}
-    b_t = \frac{1}{w} \sum_{i = -w/2}^{w/2} x_{t+i},
-    \qquad r_t = x_t - b_t.
-\end{equation}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.95\linewidth]{figures/real_data_decomposition}
-    \caption{A $10\,000$-sample snapshot of the first month decomposed
-    into a slowly-varying baseline (top, with the MA-480 baseline in
-    red) and zero-mean residuals (bottom).}
-    \label{fig:real-decomp}
-\end{figure}
-
-The empirical statistics, averaged across the four months, are reported
-in \cref{tab:real-stats}. The baseline standard deviation is much
-smaller than the high-frequency residual standard deviation, and its
-slow variation is what motivates the random-walk baseline model used in
-the v1 generator.
 
 \begin{table}[H]
     \centering
     \footnotesize
     \begin{tabular}{lcccc}
         \toprule
-        Month & Global mean $\mu$ & HF noise std $\sigma$ & OU $\theta$ & OU $\sigma_{\mathrm{OU}}$ \\
+        Month & Mean $\mu$ & HF noise std $\sigma$ & OU $\theta$ & OU $\sigma_{\mathrm{OU}}$ \\
         \midrule
-        24/02/2015 & 96.93  & 2.31 & $4 \cdot 10^{-6}$ & 0.0277 \\
-        30/04/2015 & 98.86  & 2.58 & $4 \cdot 10^{-6}$ & 0.0390 \\
-        22/06/2015 & 101.28 & 2.51 & $4 \cdot 10^{-6}$ & 0.0337 \\
-        20/10/2015 & 99.95  & 2.70 & $4 \cdot 10^{-6}$ & 0.0485 \\
+        24/02/2015 & 96.93  & 2.31 & $4\cdot 10^{-6}$ & 0.0277 \\
+        30/04/2015 & 98.86  & 2.58 & $4\cdot 10^{-6}$ & 0.0390 \\
+        22/06/2015 & 101.28 & 2.51 & $4\cdot 10^{-6}$ & 0.0337 \\
+        20/10/2015 & 99.95  & 2.70 & $4\cdot 10^{-6}$ & 0.0485 \\
         \midrule
-        \textbf{Average across all} & \textbf{99.26} & \textbf{2.53} &
-        $\mathbf{4 \cdot 10^{-6}}$ & \textbf{0.0373} \\
+        \textbf{Average} & \textbf{99.26} & \textbf{2.53} &
+        $\mathbf{4\cdot 10^{-6}}$ & \textbf{0.0373} \\
         \bottomrule
     \end{tabular}
-    \caption{First-pass statistical characterisation of the four months
-    of real gamma data, as extracted by the v1 calibration script
-    \texttt{evaluate\_real\_data.py}. The averaged values in the
-    bottom row are those used in the v1 generator.}
+    \caption{Statistics of the four real months. The average row gives the
+    parameters used by the synthetic generator.}
     \label{tab:real-stats}
 \end{table}
 
+\section{Background model}
+\label{sec:noise}
+
+Following \cref{sec:realdata}, the synthetic background is a white Gaussian
+high-frequency noise on a slowly drifting baseline:
+\begin{equation}
+    x_t = b_t + \eta_t, \quad
+    \eta_t \overset{\text{iid}}{\sim} \mathcal{N}(0,\sigma^2), \quad
+    b_{t+1} = b_t + \theta\,(\mu - b_t) + \xi_t, \quad
+    \xi_t \overset{\text{iid}}{\sim} \mathcal{N}(0,\sigma_{\mathrm{OU}}^2),
+    \label{eq:noise-model}
+\end{equation}
+with $\mu = 99.26$, $\sigma = 2.53$, $\theta = 4\cdot 10^{-6}$ and
+$\sigma_{\mathrm{OU}} = 0.0373$ (\cref{tab:real-stats}). The first equation makes
+each reading a baseline plus zero-mean Gaussian sensor noise; the second is a
+discrete Ornstein--Uhlenbeck (OU) process, a mean-reverting random walk whose
+very small $\theta$ keeps the baseline only loosely tethered to $\mu$, so it
+drifts over hundreds of thousands of samples --- much slower than the $W=512$
+analysis window. This model is intentionally crude: it captures the marginal
+noise level and slow drift, but treats the high-frequency noise as independent in
+time, which is the main simplification we accept at this stage
+(\cref{chap:conclusion}).
+
+\section{Anomaly morphologies}
+\label{sec:templates}
+
+We model six anomaly morphologies, giving $K=7$ classes with the background.
+Each is stored as a small set of \emph{keypoints} (normalised time and amplitude)
+joined by linear, exponential or smoothed half-cosine segments
+(\cref{fig:templates}):
+\texttt{bell} and \texttt{bell\_sq} (smooth bumps, the second with a short
+plateau), \texttt{fast\_ascend} and \texttt{fast\_descend} (asymmetric ramps with
+a fast edge and a slow tail), \texttt{M} (a twin-peak episode) and \texttt{square}
+(a sustained plateau).
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\linewidth]{figures/real_data_stats}
-    \caption{\textbf{Left}: empirical distribution of the raw gamma
-    dose values per month. The distributions are unimodal and only
-    slightly skewed, supporting a Gaussian approximation of the
-    high-frequency noise. \textbf{Right}: residual autocorrelation
-    (after MA-480 baseline removal). The non-trivial decay over
-    $\sim 30$ lags is the v1 noise model's biggest oversight; we will
-    come back to it in \cref{chap:reanalysis}.}
-    \label{fig:real-stats}
+    \includegraphics[width=0.95\linewidth]{figures/v1_anomaly_templates}
+    \caption{The six anomaly templates in normalised time and amplitude. Each is
+    a short list of keypoints (markers) connected by linear, exponential or
+    half-cosine segments.}
+    \label{fig:templates}
 \end{figure}
 
-\section{v1 noise model: Gaussian fluctuations on an OU baseline}
-\label{sec:v1-noise-model}
-
-Following the empirical findings of \cref{sec:stat-charac}, v1 models
-the real gamma dose as
+A template used verbatim would not generalise, so every injected anomaly is
+randomly deformed before use (\cref{fig:deform}). Each keypoint is jittered by a
+Gaussian of standard deviation $\nu$ (the \emph{deformation level}) under
+direction constraints that preserve the qualitative shape, time monotonicity is
+enforced, and the curve is then rescaled to a target amplitude and duration.
+The generator samples
 \begin{equation}
-    x_t = b_t + \eta_t,
-    \quad \eta_t \overset{\text{iid}}{\sim} \mathcal{N}(0, \sigma^2),
-    \quad b_{t+1} = b_t + \theta (\mu - b_t) + \xi_t,
-    \quad \xi_t \overset{\text{iid}}{\sim} \mathcal{N}(0, \sigma_{\mathrm{OU}}^2).
-    \label{eq:v1-noise-model}
+    \text{amplitude} \in \sigma\cdot[2.5,\,7.6], \qquad
+    \text{duration} \in [200,\,800]\ \text{samples}, \qquad
+    \nu \in [0.02,\,0.10].
+    \label{eq:ranges}
 \end{equation}
-The first equation says that the instantaneous reading is a baseline
-plus zero-mean Gaussian noise; the second is the Ornstein--Uhlenbeck
-(OU) discrete dynamics for the baseline, with mean-reversion strength
-$\theta$ and innovation magnitude $\sigma_{\mathrm{OU}}$. With
-$\theta = 4 \cdot 10^{-6}$ the baseline is very loosely tethered ---
-the half-life of an excursion is roughly $\log 2 / \theta \approx
-1.7 \cdot 10^{5}$ samples, much longer than our $W = 512$ analysis
-windows --- which reproduces the slow drifts visible in
-\cref{fig:real-overview}.
+Amplitudes are expressed in multiples of the noise std $\sigma$, so the
+per-sample signal-to-noise ratio of an anomaly lies in the interesting range
+$[2.5,7.6]$ --- strong enough to be learnable, weak enough to be non-trivial.
 
-\paragraph{What v1 gets right.} The marginal distribution of
-$\eta_t \sim \mathcal{N}(0, \sigma^2)$ matches the empirical histogram
-of the moving-average residual (\cref{fig:real-stats}, left). The OU
-baseline matches the order of magnitude of the long-term drift.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figures/v1_template_deformation}
+    \caption{Five random realisations of each template under the ranges of
+    \cref{eq:ranges}. The qualitative shape is preserved while amplitude,
+    duration and fine shape vary.}
+    \label{fig:deform}
+\end{figure}
 
-\paragraph{What v1 misses.} The IID assumption for $\eta_t$ is too
-strong: the empirical residual ACF in \cref{fig:real-stats} (right)
-shows a smooth decay over $\sim 30$ lags rather than a sharp drop to
-the $\pm 2 / \sqrt{N}$ band that white noise would produce. At the
-level of the marginal histogram and the global standard deviation, the
-mismatch is invisible; at the level of the local texture of a
-$512$-sample window --- the input that a convolutional stem actually
-sees --- it is large. \Cref{chap:reanalysis} will fix this with an
-AR(1) model.
+\section{The synthetic dataset}
+\label{sec:generator}
+
+The generator combines \cref{eq:noise-model,eq:ranges} into one long labelled
+signal. It (i) draws a number of anomalies and their roughly evenly spaced
+injection points (with $\pm 200$-sample jitter); (ii) for each, samples a
+template and a $(\text{amplitude},\text{duration},\nu)$ triple and builds the
+deformed curve; (iii) generates the background of \cref{eq:noise-model} in
+$50{,}000$-sample chunks (so memory stays constant); and (iv) adds each anomaly
+on top of the background and labels every sample with its class.
+\Cref{fig:preview} shows an excerpt.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/v1_synthetic_preview}
+    \caption{Excerpt of the synthetic dataset (first $30{,}000$ of $10^{7}$
+    samples). The gamma-dose signal (blue) fluctuates around $\sim 100$ counts;
+    injected anomalies are highlighted and coloured by class (legend).}
+    \label{fig:preview}
+\end{figure}
+
+The dataset used throughout this report has $N = 10^{7}$ samples with
+$5{,}000$--$8{,}000$ injected anomalies, i.e.\ a density of $\sim 6$--$8$ events
+per $10{,}000$ samples (about one anomaly every $1{,}500$ samples). This dense
+injection is a deliberate choice for the validation benchmark: it provides
+abundant, balanced examples of every morphology, at the cost of a background
+prior that is far denser than a real beacon would see --- a gap we return to in
+\cref{chap:conclusion}.

@@ -1,0 +1,79 @@
+\appendix
+\chapter{Appendices}
+\label{chap:appendix}
+
+\section{Generator configuration}
+\label{app:gen}
+
+\begin{table}[H]
+    \centering \footnotesize
+    \begin{tabular}{ll}
+        \toprule
+        Parameter & Value \\
+        \midrule
+        Total length $N$              & $10^{7}$ samples (written in $5\cdot10^{4}$ chunks) \\
+        Number of anomalies           & $5{,}000$--$8{,}000$ ($\sim 6$--$8$ / $10$k samples) \\
+        Injection jitter              & $\pm 200$ samples \\
+        Anomaly amplitude             & $\sigma\cdot\mathcal{U}(2.5,7.6)$ (SNR units) \\
+        Anomaly duration              & $\mathcal{U}[200,800]$ samples \\
+        Deformation level $\nu$       & $\mathcal{U}(0.02,0.10)$ \\
+        HF noise                      & i.i.d.\ $\mathcal{N}(0,\sigma^2)$, $\sigma=2.53$ \\
+        Baseline (OU)                 & $\mu=99.26$, $\theta=4\cdot10^{-6}$, $\sigma_{\mathrm{OU}}=0.0373$ \\
+        Templates / classes           & 6 morphologies $+$ background ($K=7$) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Synthetic generator configuration.}
+    \label{tab:app-gen}
+\end{table}
+
+\section{Training and inference configuration}
+\label{app:hp}
+
+\begin{table}[H]
+    \centering \footnotesize
+    \begin{tabular}{ll}
+        \toprule
+        Hyperparameter & Value \\
+        \midrule
+        Window size $W$                & $512$ \\
+        Stride (train / inference)     & $32$ / $10$ \\
+        Labelling threshold $\tau_{\mathrm{cov}}$ & $0.10$ of the window's samples (majority anomaly class) \\
+        Normalisation                  & per-window centring, global $\sigma_{\mathrm{train}}=4.21$ \\
+        Split                          & temporal $80/20$, then random $80/20$ on train \\
+        Optimiser                      & Adam, $\beta_1{=}0.9$, $\beta_2{=}0.999$, $\varepsilon{=}10^{-8}$ \\
+        Learning rate / batch          & $10^{-3}$ / $128$ \\
+        Max epochs                     & $35$ \\
+        LR scheduler                   & \texttt{ReduceLROnPlateau}(patience $2$, factor $0.5$) \\
+        Early stopping                 & patience $10$, min-delta $5\cdot10^{-3}$ \\
+        Loss                           & class-weighted cross-entropy, \cref{eq:objective} \\
+        Class weights $\mathbf{w}$     & $(0.46,1.18,1.27,1.32,1.24,1.15,1.31)$ \\
+        \midrule
+        Event extraction              & background-prob.\ threshold $0.3$, bridge gaps $\le 50$ \\
+        Probability smoothing         & $30$-sample rolling mean \\
+        \bottomrule
+    \end{tabular}
+    \caption{Shared training, inference and event-extraction settings.}
+    \label{tab:app-hp}
+\end{table}
+
+\section{Anomaly-template format}
+\label{app:csv}
+
+Each template is a CSV of keypoints with columns
+\texttt{time}, \texttt{value} (both normalised to $[0,1]$),
+\texttt{t\_minus}, \texttt{t\_plus}, \texttt{v\_minus}, \texttt{v\_plus}
+(flags allowing jitter in each direction), and \texttt{interp}
+(segment interpolation: \texttt{linear}, \texttt{exp\_up}, \texttt{exp\_down} or
+\texttt{bell}). The deformation perturbs the free keypoints by a Gaussian of
+std $\nu$ under these direction constraints, enforces time monotonicity, and
+interpolates to a dense curve rescaled to the target amplitude and duration.
+
+\section{Software environment}
+\label{app:env}
+
+Experiments ran on Windows~11 with Python~3.13 and PyTorch~2.12 (CUDA~12.8) on a
+single NVIDIA RTX~5060 Laptop GPU, using NumPy, Pandas, Matplotlib, SciPy and
+scikit-learn for data handling, metrics and figures. The repository contains the
+generator (\texttt{data-gen/}), the models and training/evaluation scripts
+(\texttt{architectures/}), and this report with a figure-rebuild script
+(\texttt{documentation/}).
