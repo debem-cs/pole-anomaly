@@ -28,9 +28,10 @@ boundary samples, while the abundant injection density of the benchmark
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.92\linewidth]{figures/sliding_window}
-    \caption{Sliding-window construction. Each bar is one $512$-sample window;
-    a window is labelled anomalous when at least $\tau_{\mathrm{cov}}=10\%$ of its
-    samples belong to an event.}
+    \caption{Sliding-window labelling on a fragment containing one event (orange
+    span, top). Each bar (bottom) is one $512$-sample window; a window is
+    labelled anomalous (red) when at least $\tau_{\mathrm{cov}}=10\%$ of its
+    samples fall inside the event, and \texttt{Normal} (grey) otherwise.}
     \label{fig:windowing}
 \end{figure}
 

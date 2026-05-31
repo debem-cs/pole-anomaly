@@ -132,15 +132,18 @@ template and a $(\text{amplitude},\text{duration},\nu)$ triple and builds the
 deformed curve; (iii) generates the background of \cref{eq:noise-model} in
 $50{,}000$-sample chunks (so memory stays constant); and (iv) adds each anomaly
 on top of the background and labels every sample with its class.
-\Cref{fig:preview} shows an excerpt.
+\Cref{fig:snapshots} shows two injected anomalies up close, each overlaid with
+its underlying clean shape.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{figures/v1_synthetic_preview}
-    \caption{Excerpt of the synthetic dataset (first $30{,}000$ of $10^{7}$
-    samples). The gamma-dose signal (blue) fluctuates around $\sim 100$ counts;
-    injected anomalies are highlighted and coloured by class (legend).}
-    \label{fig:preview}
+    \includegraphics[width=0.95\linewidth]{figures/anomaly_snapshots}
+    \caption{Two injected anomalies seen in the synthetic signal. Blue: the
+    generated gamma dose (baseline $+$ Gaussian noise $+$ anomaly); orange: the
+    pure anomaly shape before noise. Left: a smooth \texttt{bell}; right: an
+    asymmetric \texttt{fast\_descend} (fast rise, slow decay). Both have an
+    amplitude of $\sim 5$--$6\,\sigma$ above the baseline.}
+    \label{fig:snapshots}
 \end{figure}
 
 The dataset used throughout this report has $N = 10^{7}$ samples with
