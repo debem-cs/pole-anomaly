@@ -2,15 +2,17 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {3.1}{\ignorespaces The four months of real 2015 gamma-dose recordings (one sample per minute). The signal is a slowly drifting baseline near $99$ counts plus a few-count high-frequency fluctuation, with occasional sharper excursions.}}{10}{figure.caption.3}%
-\contentsline {figure}{\numberline {3.2}{\ignorespaces The six anomaly templates in normalised time and amplitude. Each is a short list of keypoints (markers) connected by linear, exponential or half-cosine segments.}}{11}{figure.caption.5}%
-\contentsline {figure}{\numberline {3.3}{\ignorespaces Five random realisations of each template under the ranges of \cref {eq:ranges}. The qualitative shape is preserved while amplitude, duration and fine shape vary.}}{12}{figure.caption.6}%
-\contentsline {figure}{\numberline {3.4}{\ignorespaces Two injected anomalies seen in the synthetic signal. Blue: the generated gamma dose (baseline $+$ Gaussian noise $+$ anomaly); orange: the pure anomaly shape before noise. Left: a smooth \texttt {bell}; right: an asymmetric \texttt {fast\_descend} (fast rise, slow decay). Both have an amplitude of $\sim 5$--$6\,\sigma $ above the baseline.}}{12}{figure.caption.7}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces A pre-LN Transformer encoder block. Each sub-layer is wrapped in a residual connection; LayerNorm is applied before the sub-layer (pre-norm).}}{14}{figure.caption.3}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {4.1}{\ignorespaces Sliding-window labelling on a fragment containing one event (orange span, top). Each bar (bottom) is one $512$-sample window; a window is labelled anomalous (red) when at least $\tau _{\mathrm {cov}}=10\%$ of its samples fall inside the event, and \texttt {Normal} (grey) otherwise.}}{14}{figure.caption.8}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces The four months of real 2015 gamma-dose recordings (one sample per minute). The signal is a slowly drifting baseline near $99$ counts plus a few-count high-frequency fluctuation, with occasional sharper excursions.}}{17}{figure.caption.4}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces The six anomaly templates in normalised time and amplitude. Each is a short list of keypoints (markers) connected by linear, exponential or half-cosine segments.}}{18}{figure.caption.6}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Five random realisations of each template under the ranges of \cref {eq:ranges}. The qualitative shape is preserved while amplitude, duration and fine shape vary.}}{19}{figure.caption.7}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Two injected anomalies seen in the synthetic signal. Blue: the generated gamma dose (baseline $+$ Gaussian noise $+$ anomaly); orange: the pure anomaly shape before noise. Left: a smooth \texttt {bell}; right: an asymmetric \texttt {fast\_descend} (fast rise, slow decay). Both have an amplitude of $\sim 5$--$6\,\sigma $ above the baseline.}}{19}{figure.caption.8}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Training dynamics. Train/validation loss (left) and validation macro $F_1$ (right) for the three models.}}{17}{figure.caption.11}%
-\contentsline {figure}{\numberline {5.2}{\ignorespaces Event-level confusion matrices on the $59$-event synthetic segment. The ResNet is on the diagonal; the misses of the other two models fall on the visually similar morphologies.}}{18}{figure.caption.13}%
-\contentsline {figure}{\numberline {5.3}{\ignorespaces Robustness. Event-level macro $F_1$ vs background-noise multiplier (left) and vs shape-deformation multiplier (right).}}{19}{figure.caption.15}%
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Sliding-window labelling on a fragment containing one event (orange span, top). Each bar (bottom) is one $512$-sample window; a window is labelled anomalous (red) when at least $\tau _{\mathrm {cov}}=10\%$ of its samples fall inside the event, and \texttt {Normal} (grey) otherwise.}}{21}{figure.caption.9}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Training dynamics. Train/validation loss (left) and validation macro $F_1$ (right) for the three models.}}{24}{figure.caption.12}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Event-level confusion matrices on the $59$-event synthetic segment. The ResNet is on the diagonal; the misses of the other two models fall on the visually similar morphologies.}}{25}{figure.caption.14}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Robustness. Event-level macro $F_1$ vs background-noise multiplier (left) and vs shape-deformation multiplier (right).}}{26}{figure.caption.16}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
